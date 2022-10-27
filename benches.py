@@ -37,6 +37,7 @@ gapbs_cmd = {
 
 class Applications():
     def __init__(self, num_app):
+        self.blocked = 0
         self.num_app = num_app
         self.app_map = {}
         for i in range(self.num_app):
@@ -86,7 +87,7 @@ class Applications():
         return cmd_path, cmd_bg
 
     def run_app(self):
-        print("Running app")
+        print("***************Running app")
         empty_core = self.check_pids()
         if empty_core == 0:
             self.blocked += 1

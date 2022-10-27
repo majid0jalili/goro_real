@@ -33,7 +33,7 @@ class PEBS():
 
     def run_perf_stat(self):
         cmd = self.make_cmd()
-        print("Running cmd ", cmd)
+        print("**********************Running cmd ", cmd)
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
@@ -53,8 +53,6 @@ class PEBS():
             for e in self.event_list:
                 print("CPU ", cpu, " Event ", e,
                       " Value ", stats[("CPU"+str(cpu), e)])
+                break
 
 
-pebs = PEBS(4)
-stats = pebs.run_perf_stat()
-pebs = pebs.print(stats)

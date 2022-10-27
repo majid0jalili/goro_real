@@ -3,11 +3,13 @@ import os
 import argparse
 import multiprocessing
 import torch
+import time
 
 # BDQ
 from utils import ReplayBuffer
 from agent import BQN
 from benches import Applications
+from pbes import PEBS
 
 parser = argparse.ArgumentParser('parameters')
 parser.add_argument('--lr_rate', type=float, default=1e-4,
@@ -35,17 +37,7 @@ total_reward = 0
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 memory = ReplayBuffer(1000, action_space, device)
-agent = BQN(state_space, action_space, action_scale, learning_rate, device)
-
-
-if os.path.exists(run_name+"_out.txt"):
-    os.remove(run_name+"_out.txt")
-else:
-    print("File does not exist")
-
-if os.path.exists(run_name + "_states"):
-    shutil.rmtree(run_name + "_states")
-    os.mkdir(run_name + "_states")
+# agent = BQN(state_space, action_space, action_scale, learning_rate, device)
 
 
 def summary():
@@ -63,12 +55,24 @@ def summary():
 
 
 def run_app():
-    app = Applications()
-    app.run_app()
+    app = Applications(4)
+    while(True):
+        app.run_app()
+        app.run_app()
+        app.run_app()
+        app.run_app()
+        
+        time.sleep(5)
 
 
 def set_collector():
     print("Function set_collector")
+    
+    while(True):
+        pebs = PEBS(4)
+        stats = pebs.run_perf_stat()
+        pebs = pebs.print(stats)
+        time.sleep(5)
 
 
 def train():
