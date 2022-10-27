@@ -36,25 +36,24 @@ gapbs_cmd = {
 
 
 class Applications():
-    def __init__(self):
-        self.num_app = 4
-        self.blocked = 0
+    def __init__(self, num_app):
+        self.num_app = num_app
         self.app_map = {}
         for i in range(self.num_app):
             self.app_map[i] = -2
         print("App map is ", self.app_map)
-        
+
     def force_kill_all(self):
         for i in range(self.num_app):
             os.kill(self.app_map[i], 9)
             self.app_map[i] = -2
-                
+
     def get_sleep(self):
         sleep_time = random.randint(0, 10)
-        cmd  = "sleep " + str(sleep_time)
+        cmd = "sleep " + str(sleep_time)
         return cmd
-        
-    def check_pid(self, pid):        
+
+    def check_pid(self, pid):
         """ Check For the existence of a unix pid. """
         try:
             os.kill(pid, 0)
@@ -62,7 +61,7 @@ class Applications():
             return False
         else:
             return True
-    
+
     def check_pids(self):
         empty_core = 0
         for i in range(self.num_app):
@@ -73,20 +72,19 @@ class Applications():
                 empty_core += 1
                 self.app_map[i] = -2
         return empty_core
-                
+
     def find_first_empty_core(self):
         for i in range(self.num_app):
             if self.app_map[i] == -2:
                 return i
         return -1
-    
-                
+
     def get_spec_app(self, core):
         spec_app = random.choice(list(spec_cmds.keys()))
         cmd_path = spec_root+spec_path[spec_app]
-        cmd_bg   = "taskset -c "+str(core)+" "+spec_cmds[spec_app]
+        cmd_bg = "taskset -c "+str(core)+" "+spec_cmds[spec_app]
         return cmd_path, cmd_bg
-    
+
     def run_app(self):
         print("Running app")
         empty_core = self.check_pids()
@@ -101,14 +99,11 @@ class Applications():
         cmd_path, cmd_bg = self.get_spec_app(core)
         print("Running path: ", cmd_path, " cmd: ", cmd_bg)
 
-        process = subprocess.Popen(cmd_bg, 
-                                    stdout=None,
-                                    stderr=None,
-                                    shell= True,
-                                    cwd=cmd_path
-                                    )
+        process = subprocess.Popen(cmd_bg,
+                                   stdout=None,
+                                   stderr=None,
+                                   shell=True,
+                                   cwd=cmd_path
+                                   )
         self.app_map[core] = process.pid
         print("App map is ", self.app_map)
-        
-    
-
