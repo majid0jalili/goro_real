@@ -39,7 +39,7 @@ class PEBS():
 
     def run_perf_stat(self):
         cmd = self.make_cmd()
-        #print("**********************Running cmd ", cmd)
+        # print("**********************Running cmd ", cmd)
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
@@ -59,6 +59,7 @@ class PEBS():
         stats = self.run_perf_stat()
         idx = 0
         vals = []
+        insts = []
         for cpu in range(self.num_cpu):
             for e in self.event_list:
                 val = int(stats[("CPU"+str(cpu), e)])
@@ -71,8 +72,10 @@ class PEBS():
                 state_p.append(
                     int(255*(self.maxes[idx] - self.mins[idx]) / self.maxes[idx]))
                 idx += 1
+                if (e == "instructions"):
+                    insts.append(val)
 
-        return state_p
+        return state_p, insts
 
     def print(self, stats):
         for cpu in range(self.num_cpu):

@@ -13,10 +13,10 @@ from pbes import PEBS
 from prefetcher import Prefetcher
 
 parser = argparse.ArgumentParser('parameters')
-parser.add_argument('--lr_rate', type=float, default=1e-4,
+parser.add_argument('--lr_rate', type=float, default=1e-3,
                     help='learning rate (default : 0.0001)')
 parser.add_argument('--batch_size', type=int, default=4,
-                    help='batch size(default : 4)')
+                    help='batch size(default : 32)')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='gamma (default : 0.99)')
 parser.add_argument("--name", type=str, default='unknown')
@@ -75,22 +75,37 @@ def set_collector():
     pebs = PEBS(num_cpu)
     pf = Prefetcher(num_cpu)
     total_reward = 0
-    state = pebs.state()
+    state, insts = pebs.state()
     next_state = []
+    next_inst = []
     reward = 0
+
     while (True):
         action = agent.action(state)
         action = pf.all_prefetcher_set(action)
-        next_state = pebs.state()
+        next_state, next_inst = pebs.state()
+        reward = 0
 
-        for i in range(num_cpu):
-            if (state[9+i*10] != 0):
-                reward += int(next_state[9+i*10]/state[9+i*10])
+        for inst in range(len(insts)):
+            if (insts[inst] != 0):
+                reward += (next_inst[inst] / insts[inst]) - 1
+
+        reward = int(reward*10)
         r_arr = [reward]
         total_reward += reward
-        print("total_reward", total_reward)
+        print("reward", reward, total_reward, action)
+        # write total_reward, action, reward, next_state to a text file
+        with open(r'./train_out.txt', 'a') as fp:
+            fp.write(str(reward)+' '+str(total_reward)+' action ' +
+                     ' '.join(str(a) for a in action) +
+                     ' state '+' '.join(str(s) for s in state) +
+                     ' inst '+' '.join(str(i) for i in insts) +
+                     ' next_inst '+' '.join(str(i) for i in next_inst) +
+                     '\n')
+
         memory.write_buffer(state, next_state, action, r_arr)
         state = next_state
+        insts = next_inst
 
 
 def train():
@@ -126,10 +141,10 @@ def main():
         load_model()
     t_set_collector.start()
 
-    t_run_app.join()
     t_set_collector.join()
     if (mlmode == "train"):
         t_train.join()
+        t_run_app.join()
 
     # all threads completely executed
     print("Done!")
