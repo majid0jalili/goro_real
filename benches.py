@@ -66,9 +66,7 @@ class Applications():
     def check_pids(self):
         empty_core = 0
         for i in range(self.num_app):
-            if self.check_pid(self.app_map[i]):
-                print("PID ", self.app_map[i], " is running")
-            else:
+            if self.check_pid(self.app_map[i]) == False:
                 print("PID ", self.app_map[i], " is not running")
                 empty_core += 1
                 self.app_map[i] = -2
@@ -87,11 +85,10 @@ class Applications():
         return cmd_path, cmd_bg
 
     def run_app(self):
-        print("***************Running app")
         empty_core = self.check_pids()
         if empty_core == 0:
             self.blocked += 1
-            print("All cores are busy self.blocked", self.blocked)
+            #print("All cores are busy self.blocked", self.blocked)
             return
         core = self.find_first_empty_core()
         if core == -1:

@@ -10,12 +10,13 @@ from utils import ReplayBuffer
 from agent import BQN
 from benches import Applications
 from pbes import PEBS
+from prefetcher import Prefetcher
 
 parser = argparse.ArgumentParser('parameters')
 parser.add_argument('--lr_rate', type=float, default=1e-4,
                     help='learning rate (default : 0.0001)')
-parser.add_argument('--batch_size', type=int, default=64,
-                    help='batch size(default : 64)')
+parser.add_argument('--batch_size', type=int, default=4,
+                    help='batch size(default : 4)')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='gamma (default : 0.99)')
 parser.add_argument("--name", type=str, default='unknown')
@@ -30,14 +31,18 @@ run_name = args.name
 mlmode = args.mlmode
 
 
-state_space = 28
-action_space = 20
+state_space = 44
+action_space = 16
 action_scale = 2
 total_reward = 0
 
+num_cpu = 4
+num_pf_per_core = 4
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 memory = ReplayBuffer(1000, action_space, device)
-# agent = BQN(state_space, action_space, action_scale, learning_rate, device)
+agent = BQN(state_space, action_space, action_scale,
+            learning_rate, device, num_cpu, num_pf_per_core)
 
 
 def summary():
@@ -55,32 +60,55 @@ def summary():
 
 
 def run_app():
-    app = Applications(4)
-    while(True):
+    app = Applications(num_cpu)
+    while (True):
         app.run_app()
         app.run_app()
         app.run_app()
         app.run_app()
-        
+
         time.sleep(5)
 
 
 def set_collector():
     print("Function set_collector")
-    
-    while(True):
-        pebs = PEBS(4)
-        stats = pebs.run_perf_stat()
-        pebs = pebs.print(stats)
-        time.sleep(5)
+    pebs = PEBS(num_cpu)
+    pf = Prefetcher(num_cpu)
+    total_reward = 0
+    state = pebs.state()
+    next_state = []
+    reward = 0
+    while (True):
+        action = agent.action(state)
+        action = pf.all_prefetcher_set(action)
+        next_state = pebs.state()
+
+        for i in range(num_cpu):
+            if (state[9+i*10] != 0):
+                reward += int(next_state[9+i*10]/state[9+i*10])
+        r_arr = [reward]
+        total_reward += reward
+        print("total_reward", total_reward)
+        memory.write_buffer(state, next_state, action, r_arr)
+        state = next_state
 
 
 def train():
+    loss_itr = 0
     print("Function train")
+    while True:
+        if (memory.size() > batch_size):
+            loss = agent.train_model(memory, batch_size, gamma)
+            loss_itr += 1
+            if (loss_itr == 500):
+                print("Loss:", loss.item())
+                agent.save_model("model")
+                loss_itr = 0
 
 
 def load_model():
     print("Function load_model")
+    agent.load_model("./models/model", device)
 
 
 def main():
@@ -91,12 +119,12 @@ def main():
     t_set_collector = threading.Thread(target=set_collector, args=())
     t_train = threading.Thread(target=train, args=())
 
-    t_run_app.start()
-    t_set_collector.start()
     if (mlmode == "train"):
         t_train.start()
+        t_run_app.start()
     else:
         load_model()
+    t_set_collector.start()
 
     t_run_app.join()
     t_set_collector.join()

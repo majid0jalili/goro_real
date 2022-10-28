@@ -8,9 +8,14 @@ from network import QNetwork
 
 
 class BQN(nn.Module):
-    def __init__(self, state_space: int, action_num: int, action_scale: int, learning_rate, device: str):
+    def __init__(self, state_space: int, action_num: int, action_scale: int, learning_rate, device: str, num_cpu: int, num_pf_per_core: int):
         super(BQN, self).__init__()
         self.device = device
+        self.num_cpu = num_cpu
+        self.num_pf_per_core = num_pf_per_core
+        self.action_scale = action_scale
+        self.action_num = action_num
+
         self.q = QNetwork(state_space, action_num, action_scale).to(device)
         self.target_q = QNetwork(
             state_space, action_num, action_scale).to(device)
@@ -26,26 +31,33 @@ class BQN(nn.Module):
         self.update_freq = 1000
         self.update_count = 0
         self.action_count = 0
-        print("Loading the model")
-        self.load_model("./models/model", self.device)
+        # print("Loading the model")
+        # self.load_model("./models/model", self.device)
 
-    def action(self, x, idx_rnd):
+    def action(self, x):
         acc = []
-        th1 = 1.0
-        if (idx_rnd < 80):
-            th1 -= (idx_rnd/100)
-        elif (idx_rnd < 200):
-            th1 = 0.15
-        else:
-            th1 = 0.10
+        acc_per_core = []
+
+        out = self.q(torch.tensor(x, dtype=torch.float).to(self.device))
         toss = random()
-        if (toss < th1):
-            rand_idx = randint(0, 20)
-            acc = rand_idx
+
+        if (toss < 0.1):
+            for c in range(self.num_cpu):
+                for pf in range(self.num_pf_per_core):
+                    acc_per_core.append(randint(0, 1))
+                acc.append(acc_per_core)
+                acc_per_core = []
         else:
-            out = self.q(torch.tensor(x, dtype=torch.float).to(self.device))
+            all_acc = []
             for tor in out:
-                acc.append(torch.argmax(tor, dim=1)[[0]].item())
+                all_acc.append(torch.argmax(tor, dim=1)[[0]].item())
+            pf_idx = 0
+            for c in range(self.num_cpu):
+                for pf in range(self.num_pf_per_core):
+                    acc_per_core.append(all_acc[pf_idx])
+                    pf_idx += 1
+                acc.append(acc_per_core)
+                acc_per_core = []
 
         return acc
 
@@ -86,7 +98,8 @@ class BQN(nn.Module):
         target_action = (done_mask * gamma *
                          target_cur_actions.mean(1).float() + reward.float())
 
-        loss = F.smooth_l1_loss(cur_actions, target_action.repeat(1, 20))
+        loss = F.smooth_l1_loss(
+            cur_actions, target_action.repeat(1, self.action_num))
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -95,6 +108,5 @@ class BQN(nn.Module):
         if (self.update_count % self.update_freq == 0) and (self.update_count > 0):
             self.update_count = 0
             self.target_q.load_state_dict(self.q.state_dict())
-            # print("q copied to target_q")
 
         return loss

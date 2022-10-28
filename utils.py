@@ -34,7 +34,7 @@ class ReplayBuffer():
         next_state = np.array(next_state)
         actions = np.array(actions)
         reward = np.array(reward)[0]
-        # print("Writing to buffer", state, next_state, actions, reward)
+        # print("Writing to buffer", state, actions, reward)
         self.put((state, actions, reward, next_state, 0))
 
     def print_buffer(self):
@@ -43,6 +43,7 @@ class ReplayBuffer():
     def sample(self, n):
         mini_batch = random.sample(self.buffer, n)
         state_lst, reward_lst, next_state_lst, done_mask_lst, actions_lst = [], [], [], [], []
+
         actions_lst = [[] for i in range(self.action_space)]
         for transition in mini_batch:
             state, actions, reward, next_state, done_mask = transition
@@ -54,6 +55,7 @@ class ReplayBuffer():
             done_mask_lst.append([done_mask])
         actions_lst = [torch.tensor(x, dtype=torch.float).to(
             self.device) for x in actions_lst]
+
         return torch.tensor(state_lst, dtype=torch.float).to(self.device),\
             actions_lst,\
             torch.tensor(reward_lst).to(self.device),\

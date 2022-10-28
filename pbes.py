@@ -18,6 +18,12 @@ class PEBS():
                            "offcore_requests_buffer.sq_full",
                            "instructions",
                            "cycles"]
+        self.maxes = []
+        self.mins = []
+        for i in range(self.num_cpu):
+            for e in range(len(self.event_list)):
+                self.maxes.append(0)
+                self.mins.append(999999999)
 
     def make_cmd(self):
         cmd = "sudo perf stat -A -C "
@@ -33,7 +39,7 @@ class PEBS():
 
     def run_perf_stat(self):
         cmd = self.make_cmd()
-        print("**********************Running cmd ", cmd)
+        #print("**********************Running cmd ", cmd)
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
@@ -48,11 +54,29 @@ class PEBS():
             stats[(l[0], l[2])] = l[1]
         return stats
 
+    def state(self):
+        state_p = []
+        stats = self.run_perf_stat()
+        idx = 0
+        vals = []
+        for cpu in range(self.num_cpu):
+            for e in self.event_list:
+                val = int(stats[("CPU"+str(cpu), e)])
+                vals.append(val)
+                if (val >= self.maxes[idx]):
+                    self.maxes[idx] = val
+                if (val < self.mins[idx]):
+                    self.mins[idx] = val
+
+                state_p.append(
+                    int(255*(self.maxes[idx] - self.mins[idx]) / self.maxes[idx]))
+                idx += 1
+
+        return state_p
+
     def print(self, stats):
         for cpu in range(self.num_cpu):
             for e in self.event_list:
                 print("CPU ", cpu, " Event ", e,
                       " Value ", stats[("CPU"+str(cpu), e)])
                 break
-
-
