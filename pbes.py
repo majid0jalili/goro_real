@@ -69,8 +69,10 @@ class PEBS():
                 if (val < self.mins[idx]):
                     self.mins[idx] = val
 
-                state_p.append(
-                    int(255*(self.maxes[idx] - self.mins[idx]) / self.maxes[idx]))
+                ratio = 255 * \
+                    ((val - self.mins[idx]) / self.maxes[idx])
+
+                state_p.append(int(ratio))
                 idx += 1
                 if (e == "instructions"):
                     insts.append(val)

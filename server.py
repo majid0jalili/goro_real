@@ -30,14 +30,14 @@ gamma = args.gamma
 run_name = args.name
 mlmode = args.mlmode
 
+num_cpu = 48
+num_pf_per_core = 4
 
-state_space = 44
-action_space = 16
+state_space = 11*num_cpu
+action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
 
-num_cpu = 4
-num_pf_per_core = 4
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 memory = ReplayBuffer(1000, action_space, device)
@@ -62,11 +62,8 @@ def summary():
 def run_app():
     app = Applications(num_cpu)
     while (True):
-        app.run_app()
-        app.run_app()
-        app.run_app()
-        app.run_app()
-
+        for i in range(num_cpu):
+            app.run_app()
         time.sleep(5)
 
 
@@ -91,6 +88,11 @@ def set_collector():
                 reward += (next_inst[inst] / insts[inst]) - 1
 
         reward = int(reward*10)
+        if (reward > 10):
+            reward = 10
+        if (reward < -10):
+            reward = -10
+
         r_arr = [reward]
         total_reward += reward
         print("reward", reward, total_reward, action)

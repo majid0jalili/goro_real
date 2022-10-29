@@ -4,13 +4,14 @@ import time
 # BDQ
 from utils import ReplayBuffer
 from agent import BQN
-state_space = 44
-action_space = 16
+num_cpu = 32
+num_pf_per_core = 4
+
+state_space = 11*num_cpu
+action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
 
-num_cpu = 4
-num_pf_per_core = 4
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 memory = ReplayBuffer(1000, action_space, device)
@@ -23,6 +24,6 @@ agent.load_model("./models/model", device)
 print("Done")
 
 for i in range(100):
-    state = torch.randint(0, 255, (1, 44)).float().to(device)
+    state = torch.randint(0, 255, (1, state_space)).float().to(device)
     action = agent.action(state)
     print(action)

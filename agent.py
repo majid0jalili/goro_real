@@ -52,6 +52,7 @@ class BQN(nn.Module):
             for tor in out:
                 all_acc.append(torch.argmax(tor, dim=1)[[0]].item())
             pf_idx = 0
+
             for c in range(self.num_cpu):
                 for pf in range(self.num_pf_per_core):
                     acc_per_core.append(all_acc[pf_idx])
