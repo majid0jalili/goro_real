@@ -4,7 +4,7 @@ import time
 # BDQ
 from utils import ReplayBuffer
 from agent import BQN
-num_cpu = 32
+num_cpu = 63
 num_pf_per_core = 4
 
 state_space = 11*num_cpu
@@ -19,11 +19,19 @@ agent = BQN(state_space, action_space, action_scale,
             1e-4, device, num_cpu, num_pf_per_core)
 
 
-agent.load_model("./models/model", device)
+model = agent.load_model("./models/model_raw", device)
 
 print("Done")
-
+'''
+for name, param in model.named_parameters():
+    if (name == "actions.223.0.weight"):
+        print(torch.histc(param, 16))
+        print(param)
+'''
 for i in range(100):
     state = torch.randint(0, 255, (1, state_space)).float().to(device)
     action = agent.action(state)
-    print(action)
+    ones = sum(x.count(1) for x in action)
+    zeros =  sum(x.count(0) for x in action)
+    tot = ones + zeros
+    print("Fraction 0  1", zeros/tot, ones/tot)

@@ -10,7 +10,10 @@ spec_path = {
     "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
     "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
     "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
-    "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/"
+    "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
+    "pr": "gapbs/",
+    "sssp": "gapbs/",
+    "bc": "gapbs/"
 }
 
 spec_cmds = {
@@ -18,20 +21,10 @@ spec_cmds = {
     "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
     "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
     "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
-    "fotonik": "./fotonik3d_r_base.mytest-m64"
-}
-
-gapbs_cmd = {
-    "pr_g21": "/gapbs/pr -g 21 -n 100000",
-    "pr_u21": "/gapbs/pr -u 21 -n 100000",
-    "bc_g21": "/gapbs/bc -g 21 -n 100000",
-    "bc_u21": "/gapbs/bc -u 21 -n 100000",
-    "tc_g21": "/gapbs/tc -g 21 -n 100000",
-    "tc_u21": "/gapbs/tc -u 21 -n 100000",
-    "bfs_g21": "/gapbs/bfs -g 21 -n 100000",
-    "bfs_u21": "/gapbs/bfs -u 21 -n 100000",
-    "sssp_g21": "/gapbs/sssp -g 21 -n 100000",
-    "sssp_u21": "/gapbs/sssp -u 21 -n 100000"
+    "fotonik": "./fotonik3d_r_base.mytest-m64",
+    "pr": "/home/cc/gapbs/pr -u 23 -n 20",
+    "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
+    "bc": "/home/cc/gapbs/bc -u 23 -n 20",
 }
 
 

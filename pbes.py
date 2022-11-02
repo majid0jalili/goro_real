@@ -7,6 +7,7 @@ import time
 class PEBS():
     def __init__(self, num_cpu):
         self.num_cpu = num_cpu
+        self.perf_read = 0
         self.event_list = ["L1-dcache-load-misses",
                            "LLC-load-misses",
                            "l2_rqsts.all_pf",
@@ -34,12 +35,13 @@ class PEBS():
         for e in self.event_list:
             cmd += e+","
         cmd = cmd[:-1]
-        cmd += " sleep 1"
+        cmd += " sleep 0.1"
+
         return cmd
 
     def run_perf_stat(self):
         cmd = self.make_cmd()
-        # print("**********************Running cmd ", cmd)
+        #print("**********************Running cmd ", cmd)
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
@@ -60,6 +62,18 @@ class PEBS():
         idx = 0
         vals = []
         insts = []
+
+        self.perf_read += 1
+        if (self.perf_read == 100):
+            self.perf_read = 0
+            idx = 0
+            for i in range(self.num_cpu):
+                for e in range(len(self.event_list)):
+                    self.maxes[idx] = 0
+                    self.mins[idx] = 999999999
+                    idx += 1
+
+        idx = 0
         for cpu in range(self.num_cpu):
             for e in self.event_list:
                 val = int(stats[("CPU"+str(cpu), e)])
@@ -69,8 +83,10 @@ class PEBS():
                 if (val < self.mins[idx]):
                     self.mins[idx] = val
 
-                ratio = 255 * \
-                    ((val - self.mins[idx]) / self.maxes[idx])
+                ratio = 0
+                if (self.maxes[idx]):
+                    ratio = 255 * \
+                        ((val - self.mins[idx]) / self.maxes[idx])
 
                 state_p.append(int(ratio))
                 idx += 1

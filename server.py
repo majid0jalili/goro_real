@@ -15,7 +15,7 @@ from prefetcher import Prefetcher
 parser = argparse.ArgumentParser('parameters')
 parser.add_argument('--lr_rate', type=float, default=1e-3,
                     help='learning rate (default : 0.0001)')
-parser.add_argument('--batch_size', type=int, default=4,
+parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size(default : 32)')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='gamma (default : 0.99)')
@@ -30,7 +30,7 @@ gamma = args.gamma
 run_name = args.name
 mlmode = args.mlmode
 
-num_cpu = 48
+num_cpu = 16
 num_pf_per_core = 4
 
 state_space = 11*num_cpu
@@ -38,6 +38,7 @@ action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
 
+loss = 0
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 memory = ReplayBuffer(1000, action_space, device)
@@ -64,7 +65,7 @@ def run_app():
     while (True):
         for i in range(num_cpu):
             app.run_app()
-        time.sleep(5)
+        time.sleep(30)
 
 
 def set_collector():
@@ -76,49 +77,58 @@ def set_collector():
     next_state = []
     next_inst = []
     reward = 0
+    avg_reward = 0
+    itr = 0
 
     while (True):
+        itr += 1
         action = agent.action(state)
         action = pf.all_prefetcher_set(action)
         next_state, next_inst = pebs.state()
         reward = 0
-
         for inst in range(len(insts)):
             if (insts[inst] != 0):
-                reward += (next_inst[inst] / insts[inst]) - 1
+                if ((next_inst[inst] / insts[inst]) - 1 < 2 and (next_inst[inst] / insts[inst]) - 1 > -2):
+                    reward += (next_inst[inst] / insts[inst]) - 1
 
-        reward = int(reward*10)
-        if (reward > 10):
-            reward = 10
-        if (reward < -10):
-            reward = -10
+        reward = int(reward*100)
+        if (reward > 1000):
+            reward = 1000
+        if (reward < -1000):
+            reward = -1000
 
         r_arr = [reward]
         total_reward += reward
-        print("reward", reward, total_reward, action)
-        # write total_reward, action, reward, next_state to a text file
-        with open(r'./train_out.txt', 'a') as fp:
-            fp.write(str(reward)+' '+str(total_reward)+' action ' +
-                     ' '.join(str(a) for a in action) +
-                     ' state '+' '.join(str(s) for s in state) +
-                     ' inst '+' '.join(str(i) for i in insts) +
-                     ' next_inst '+' '.join(str(i) for i in next_inst) +
-                     '\n')
+        avg_reward += reward
+
+        if (itr == 100):
+            avg_reward = avg_reward / 100
+            with open(r'./avg_reward.txt', 'a') as fp:
+                fp.write('avg_reward ' + str(avg_reward) +
+                         ' loss '+str(loss) +
+                         '\n')
+            itr = 0
+            avg_reward = 0
+            fp.close()
 
         memory.write_buffer(state, next_state, action, r_arr)
+
         state = next_state
         insts = next_inst
 
 
 def train():
     loss_itr = 0
+    train_itr = 0
+    global loss
     print("Function train")
     while True:
         if (memory.size() > batch_size):
             loss = agent.train_model(memory, batch_size, gamma)
             loss_itr += 1
+            train_itr += 1
             if (loss_itr == 500):
-                print("Loss:", loss.item())
+                print("train_itr Loss:", train_itr, loss.item())
                 agent.save_model("model")
                 loss_itr = 0
 

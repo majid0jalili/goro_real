@@ -21,11 +21,15 @@ class BQN(nn.Module):
             state_space, action_num, action_scale).to(device)
         self.target_q.load_state_dict(self.q.state_dict())
 
-        self.optimizer = optim.AdamW([
-            {'params': self.q.linear_1.parameters(), 'weight_decay': 1e-4, 'lr': learning_rate / (action_num+2)},\
-            # {'params' : self.q.linear_2.parameters(), 'weight_decay':0.001,'lr': learning_rate / (action_num+2)},\
-            {'params': self.q.value.parameters(), 'weight_decay': 1e-4, 'lr': learning_rate / (action_num+2)},\
-            {'params': self.q.actions.parameters(), 'weight_decay': 1e-4, 'lr': learning_rate},\
+        self.optimizer = optim.Adam([
+            {'params': self.q.linear_1.parameters(), 'weight_decay': 1e-4,
+             'lr': learning_rate / (action_num+2)},
+            #{'params': self.q.linear_2.parameters(), 'weight_decay': 0.001,
+            # 'lr': learning_rate / (action_num+2)},
+            {'params': self.q.value.parameters(), 'weight_decay': 1e-4,
+             'lr': learning_rate / (action_num+2)},
+            {'params': self.q.actions.parameters(), 'weight_decay': 1e-4,
+             'lr': learning_rate},
         ])
 
         self.update_freq = 1000
@@ -33,14 +37,13 @@ class BQN(nn.Module):
         self.action_count = 0
         # print("Loading the model")
         # self.load_model("./models/model", self.device)
+        self.save_model("model_raw")
 
     def action(self, x):
         acc = []
         acc_per_core = []
-
         out = self.q(torch.tensor(x, dtype=torch.float).to(self.device))
         toss = random()
-
         if (toss < 0.1):
             for c in range(self.num_cpu):
                 for pf in range(self.num_pf_per_core):
@@ -79,6 +82,7 @@ class BQN(nn.Module):
         print("Trying to load the model")
         self.q.load_state_dict(checkpoint['modelA_state_dict'])
         print("model loaded")
+        return self.q
 
     def train_model(self, memory, batch_size, gamma):
         state, actions, reward, next_state, done_mask = memory.sample(
@@ -99,7 +103,7 @@ class BQN(nn.Module):
         target_action = (done_mask * gamma *
                          target_cur_actions.mean(1).float() + reward.float())
 
-        loss = F.smooth_l1_loss(
+        loss = F.mse_loss(
             cur_actions, target_action.repeat(1, self.action_num))
 
         self.optimizer.zero_grad()
