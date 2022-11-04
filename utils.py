@@ -1,7 +1,6 @@
 import torch
 import collections
-from random import random
-from random import randint
+from random import uniform, random, choice, sample, randint
 import numpy as np
 from typing import Dict, List, Tuple
 from segment_tree import MinSegmentTree, SumSegmentTree
@@ -56,7 +55,7 @@ class ReplayBuffer():
     def print_buffer(self):
         print(self.buffer)
 
-    def sample(self, n):
+    def sample_obs(self, n):
         mini_batch = random.sample(self.buffer, n)
         state_lst, reward_lst, next_state_lst, done_mask_lst, actions_lst = [], [], [], [], []
 
@@ -123,7 +122,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.min_tree[self.tree_ptr] = self.max_priority ** self.alpha
         self.tree_ptr = (self.tree_ptr + 1) % self.buffer_limit
 
-    def sample(self, batch_size):
+    def sample_obs(self, batch_size):
         assert len(self) >= batch_size
         assert self.beta > 0
 
@@ -132,7 +131,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         mini_batch = list(res_list)
         toss = random()
         if (toss < 0.1):
-            mini_batch = random.sample(self.buffer, n)
+            mini_batch = sample(self.buffer, batch_size)
             
         state_lst, reward_lst, next_state_lst, done_mask_lst, actions_lst = [], [], [], [], []
 
@@ -164,13 +163,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         indices = []
         p_total = self.sum_tree.sum(0, len(self) - 1)
         segment = p_total / batch_size
-        print("p_total, segment", p_total, segment)
         for i in range(batch_size):
             a = segment * i
             b = segment * (i + 1)
-            upperbound = random.uniform(a, b)
+            upperbound = uniform(a, b)
             idx = self.sum_tree.retrieve(upperbound)
-            print(a, b, upperbound, idx)
             indices.append(idx)
 
         return indices

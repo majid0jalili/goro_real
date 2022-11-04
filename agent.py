@@ -17,6 +17,7 @@ class BQN(nn.Module):
         self.num_pf_per_core = num_pf_per_core
         self.action_scale = action_scale
         self.action_num = action_num
+        self.prior_eps = 1e-6
 
         # self.memory = ReplayBuffer(10000, action_num, device)
         self.memory = PrioritizedReplayBuffer(
@@ -91,18 +92,17 @@ class BQN(nn.Module):
         return self.q
 
     def train_model(self, batch_size, gamma):
-        state, actions, reward, next_state, done_mask, weights, indices = self.memory.sample(
+        state, actions, reward, next_state, done_mask, weights, indices = self.memory.sample_obs(
             batch_size)
 
         actions = torch.stack(actions).transpose(0, 1).unsqueeze(-1)
         done_mask = torch.abs(done_mask-1)
 
         cur_actions = self.q(state.float())
-
         cur_actions = torch.stack(cur_actions).transpose(0, 1)
         cur_actions = cur_actions.gather(2, actions.long()).squeeze(-1)
-        target_cur_actions = self.target_q(next_state.float())
 
+        target_cur_actions = self.target_q(next_state.float())
         target_cur_actions = torch.stack(target_cur_actions).transpose(0, 1)
         target_cur_actions = target_cur_actions.max(-1, keepdim=True)[0]
 
@@ -110,8 +110,10 @@ class BQN(nn.Module):
                          target_cur_actions.mean(1).float() + reward.float())
 
         elementwise_loss = F.smooth_l1_loss(
-            cur_actions, target_action.repeat(1, self.action_num))
+            cur_actions, target_action.repeat(1, self.action_num), reduction="none")
 
+        elementwise_loss = torch.mean(elementwise_loss, dim=1)
+        
         loss = torch.mean(elementwise_loss * weights)
 
         self.optimizer.zero_grad()
@@ -124,6 +126,7 @@ class BQN(nn.Module):
             self.target_q.load_state_dict(self.q.state_dict())
 
         # PER: update priorities
+       
         loss_for_prior = elementwise_loss.detach().cpu().numpy()
         new_priorities = loss_for_prior + self.prior_eps
         self.memory.update_priorities(indices, new_priorities)

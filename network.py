@@ -22,9 +22,9 @@ class QNetwork(nn.Module):
         # nn.Linear(state_space*s3, 1)
         # )
         # self.actions = [nn.Sequential(nn.Linear(state_space*s1, action_scale),
-        self.actions = [nn.Sequential(nn.Linear(128, 64),
+        self.actions = [nn.Sequential(nn.Linear(128, 32),
                                       nn.ReLU(),
-                                      nn.Linear(64, action_scale)
+                                      nn.Linear(32, action_scale)
                                       ) for _ in range(action_space)]
 
         self.actions = nn.ModuleList(self.actions)

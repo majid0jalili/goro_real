@@ -132,9 +132,9 @@ def train():
             loss = agent.train_model(batch_size, gamma)
             loss_itr += 1
             train_itr += 1
-            agent.memory.beta = beta + (itr/100)*(1-beta)
+            agent.memory.beta = beta + (loss_itr/100)*(1-beta)
             if (loss_itr == 100):
-                print("train_itr Loss:", train_itr, loss.item())
+                # print("train_itr Loss:", train_itr, loss.item())
                 agent.save_model("model")
                 loss_itr = 0
                 agent.memory.beta = beta
