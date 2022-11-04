@@ -5,16 +5,22 @@ import torch.optim as optim
 from random import random
 from random import randint
 from network import QNetwork
+from utils import ReplayBuffer, PrioritizedReplayBuffer
 
 
 class BQN(nn.Module):
-    def __init__(self, state_space: int, action_num: int, action_scale: int, learning_rate, device: str, num_cpu: int, num_pf_per_core: int):
+    def __init__(self, state_space: int, action_num: int, action_scale: int,
+                 learning_rate, device: str, num_cpu: int, num_pf_per_core: int, alpha, beta):
         super(BQN, self).__init__()
         self.device = device
         self.num_cpu = num_cpu
         self.num_pf_per_core = num_pf_per_core
         self.action_scale = action_scale
         self.action_num = action_num
+
+        # self.memory = ReplayBuffer(10000, action_num, device)
+        self.memory = PrioritizedReplayBuffer(
+            10000, action_num, device, alpha, beta)
 
         self.q = QNetwork(state_space, action_num, action_scale).to(device)
         self.target_q = QNetwork(
@@ -24,7 +30,7 @@ class BQN(nn.Module):
         self.optimizer = optim.Adam([
             {'params': self.q.linear_1.parameters(), 'weight_decay': 1e-4,
              'lr': learning_rate / (action_num+2)},
-            #{'params': self.q.linear_2.parameters(), 'weight_decay': 0.001,
+            # {'params': self.q.linear_2.parameters(), 'weight_decay': 0.001,
             # 'lr': learning_rate / (action_num+2)},
             {'params': self.q.value.parameters(), 'weight_decay': 1e-4,
              'lr': learning_rate / (action_num+2)},
@@ -84,8 +90,8 @@ class BQN(nn.Module):
         print("model loaded")
         return self.q
 
-    def train_model(self, memory, batch_size, gamma):
-        state, actions, reward, next_state, done_mask = memory.sample(
+    def train_model(self, batch_size, gamma):
+        state, actions, reward, next_state, done_mask, weights, indices = self.memory.sample(
             batch_size)
 
         actions = torch.stack(actions).transpose(0, 1).unsqueeze(-1)
@@ -103,15 +109,23 @@ class BQN(nn.Module):
         target_action = (done_mask * gamma *
                          target_cur_actions.mean(1).float() + reward.float())
 
-        loss = F.mse_loss(
+        elementwise_loss = F.smooth_l1_loss(
             cur_actions, target_action.repeat(1, self.action_num))
+
+        loss = torch.mean(elementwise_loss * weights)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
         self.update_count += 1
         if (self.update_count % self.update_freq == 0) and (self.update_count > 0):
             self.update_count = 0
             self.target_q.load_state_dict(self.q.state_dict())
+
+        # PER: update priorities
+        loss_for_prior = elementwise_loss.detach().cpu().numpy()
+        new_priorities = loss_for_prior + self.prior_eps
+        self.memory.update_priorities(indices, new_priorities)
 
         return loss

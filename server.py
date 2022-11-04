@@ -7,7 +7,6 @@ import torch
 import time
 
 # BDQ
-from utils import ReplayBuffer
 from agent import BQN
 from benches import Applications
 from pbes import PEBS
@@ -40,12 +39,14 @@ action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
 
+alpha = 0.2
+beta = 0.6
 loss = 0
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-memory = ReplayBuffer(1000, action_space, device)
+
 agent = BQN(state_space, action_space, action_scale,
-            learning_rate, device, num_cpu, num_pf_per_core)
+            learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
 
 
 def summary():
@@ -93,23 +94,6 @@ def set_collector():
                 if ((next_inst[inst] / insts[inst]) - 1 < 2 and (next_inst[inst] / insts[inst]) - 1 > -2):
                     reward += (next_inst[inst] / insts[inst]) - 1
 
-        if (reward < -2):
-            reward = -4
-        elif (reward < -1):
-            reward = -3
-        elif (reward < -.5):
-            reward = -2
-        elif (reward < 0):
-            reward = -1
-        elif (reward < .5):
-            reward = 1
-        elif (reward < 1):
-            reward = 2
-        elif (reward < 2):
-            reward = 3
-        else:
-            reward = 4
-
         r_arr = [reward]
         total_reward += reward
         avg_reward += reward
@@ -123,8 +107,11 @@ def set_collector():
             itr = 0
             avg_reward = 0
             fp.close()
+            agent.memory.beta = beta
+            agent.memory.write_to_csv("mem.csv")
 
-        memory.write_buffer(state, next_state, action, r_arr)
+        agent.memory.write_buffer(state, next_state, action, r_arr)
+        agent.memory.beta = beta + (itr/100)*(1-beta)
 
         state = next_state
         insts = next_inst
@@ -136,8 +123,8 @@ def train():
     global loss
     print("Function train")
     while True:
-        if (memory.size() > batch_size):
-            loss = agent.train_model(memory, batch_size, gamma)
+        if (agent.memory.size() > batch_size):
+            loss = agent.train_model(batch_size, gamma)
             loss_itr += 1
             train_itr += 1
             if (loss_itr == 500):
