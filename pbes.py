@@ -10,15 +10,17 @@ class PEBS():
         self.perf_read = 0
         self.event_list = ["L1-dcache-load-misses",
                            "LLC-load-misses",
-                           "l2_rqsts.all_pf",
+                           # "l2_rqsts.all_pf",
                            "l2_rqsts.miss",
-                           "mem_load_retired.l1_hit",
-                           "mem_load_retired.l2_hit",
-                           "mem_load_retired.l3_hit",
+                           # "mem_load_retired.l1_hit",
+                           # "mem_load_retired.l2_hit",
+                           # "mem_load_retired.l3_hit",
                            "offcore_requests.all_data_rd",
                            "offcore_requests_buffer.sq_full",
-                           "instructions",
-                           "cycles"]
+                           "uops_executed.stall_cycles",
+                           "instructions"
+                           # "cycles"
+                           ]
         self.maxes = []
         self.mins = []
         for i in range(self.num_cpu):
@@ -41,7 +43,7 @@ class PEBS():
 
     def run_perf_stat(self):
         cmd = self.make_cmd()
-        #print("**********************Running cmd ", cmd)
+        # print("**********************Running cmd ", cmd)
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
@@ -76,21 +78,22 @@ class PEBS():
         idx = 0
         for cpu in range(self.num_cpu):
             for e in self.event_list:
-                val = int(stats[("CPU"+str(cpu), e)])
-                vals.append(val)
-                if (val >= self.maxes[idx]):
-                    self.maxes[idx] = val
-                if (val < self.mins[idx]):
-                    self.mins[idx] = val
+                if (e != "instructions"):
+                    val = int(stats[("CPU"+str(cpu), e)])
+                    vals.append(val)
+                    if (val >= self.maxes[idx]):
+                        self.maxes[idx] = val
+                    if (val < self.mins[idx]):
+                        self.mins[idx] = val
 
-                ratio = 0
-                if (self.maxes[idx]):
-                    ratio = 255 * \
-                        ((val - self.mins[idx]) / self.maxes[idx])
+                    ratio = 0
+                    if (self.maxes[idx]):
+                        ratio = 255 * \
+                            ((val - self.mins[idx]) / self.maxes[idx])
 
-                state_p.append(int(ratio))
-                idx += 1
-                if (e == "instructions"):
+                    state_p.append(int(ratio))
+                    idx += 1
+                elif (e == "instructions"):
                     insts.append(val)
 
         return state_p, insts

@@ -32,20 +32,17 @@ class Applications():
     def __init__(self, num_app):
         self.blocked = 0
         self.num_app = num_app
-        self.app_map = {}
+        self.core_PID = {}
+
         for i in range(self.num_app):
-            self.app_map[i] = -2
-        print("App map is ", self.app_map)
+            self.core_PID[2*i] = -2
+
+        print("App map is ", self.core_PID)
 
     def force_kill_all(self):
         for i in range(self.num_app):
-            os.kill(self.app_map[i], 9)
-            self.app_map[i] = -2
-
-    def get_sleep(self):
-        sleep_time = random.randint(0, 10)
-        cmd = "sleep " + str(sleep_time)
-        return cmd
+            os.kill(self.core_PID[i], 9)
+            self.core_PID[i] = -2
 
     def check_pid(self, pid):
         """ Check For the existence of a unix pid. """
@@ -58,17 +55,18 @@ class Applications():
 
     def check_pids(self):
         empty_core = 0
-        for i in range(self.num_app):
-            if self.check_pid(self.app_map[i]) == False:
-                print("PID ", self.app_map[i], " is not running")
+        for core in self.core_PID:
+            if (self.check_pid(self.core_PID[core]) == False):
+                print("PID ", self.core_PID[core], " is not running")
                 empty_core += 1
-                self.app_map[i] = -2
+                self.core_PID[core] = -2
+
         return empty_core
 
     def find_first_empty_core(self):
-        for i in range(self.num_app):
-            if self.app_map[i] == -2:
-                return i
+        for core in self.core_PID:
+            if self.core_PID[core] == -2:
+                return core
         return -1
 
     def get_spec_app(self, core):
@@ -91,10 +89,10 @@ class Applications():
         print("Running path: ", cmd_path, " cmd: ", cmd_bg)
 
         process = subprocess.Popen(cmd_bg,
-                                   stdout=None,
-                                   stderr=None,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
                                    shell=True,
                                    cwd=cmd_path
                                    )
-        self.app_map[core] = process.pid
-        print("App map is ", self.app_map)
+        self.core_PID[core] = process.pid
+        print("App PID is ", self.core_PID)

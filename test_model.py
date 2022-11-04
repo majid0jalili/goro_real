@@ -4,10 +4,11 @@ import time
 # BDQ
 from utils import ReplayBuffer
 from agent import BQN
-num_cpu = 63
+num_cpu = 16
 num_pf_per_core = 4
+num_features_per_core = 6
 
-state_space = 11*num_cpu
+state_space = num_features_per_core*num_cpu
 action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
@@ -32,6 +33,6 @@ for i in range(100):
     state = torch.randint(0, 255, (1, state_space)).float().to(device)
     action = agent.action(state)
     ones = sum(x.count(1) for x in action)
-    zeros =  sum(x.count(0) for x in action)
+    zeros = sum(x.count(0) for x in action)
     tot = ones + zeros
     print("Fraction 0  1", zeros/tot, ones/tot)

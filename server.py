@@ -1,3 +1,4 @@
+import re
 import threading
 import os
 import argparse
@@ -32,8 +33,9 @@ mlmode = args.mlmode
 
 num_cpu = 16
 num_pf_per_core = 4
+num_features_per_core = 6
 
-state_space = 11*num_cpu
+state_space = num_features_per_core*num_cpu
 action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
@@ -91,11 +93,22 @@ def set_collector():
                 if ((next_inst[inst] / insts[inst]) - 1 < 2 and (next_inst[inst] / insts[inst]) - 1 > -2):
                     reward += (next_inst[inst] / insts[inst]) - 1
 
-        reward = int(reward*100)
-        if (reward > 1000):
-            reward = 1000
-        if (reward < -1000):
-            reward = -1000
+        if (reward < -2):
+            reward = -4
+        elif (reward < -1):
+            reward = -3
+        elif (reward < -.5):
+            reward = -2
+        elif (reward < 0):
+            reward = -1
+        elif (reward < .5):
+            reward = 1
+        elif (reward < 1):
+            reward = 2
+        elif (reward < 2):
+            reward = 3
+        else:
+            reward = 4
 
         r_arr = [reward]
         total_reward += reward
