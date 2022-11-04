@@ -57,7 +57,7 @@ class Applications():
         empty_core = 0
         for core in self.core_PID:
             if (self.check_pid(self.core_PID[core]) == False):
-                print("PID ", self.core_PID[core], " is not running")
+                # print("PID ", self.core_PID[core], " is not running")
                 empty_core += 1
                 self.core_PID[core] = -2
 
@@ -83,10 +83,10 @@ class Applications():
             return
         core = self.find_first_empty_core()
         if core == -1:
-            print("All cores are busy")
+            # print("All cores are busy")
             return
         cmd_path, cmd_bg = self.get_spec_app(core)
-        print("Running path: ", cmd_path, " cmd: ", cmd_bg)
+        # print("Running path: ", cmd_path, " cmd: ", cmd_bg)
 
         process = subprocess.Popen(cmd_bg,
                                    stdout=subprocess.DEVNULL,
@@ -95,4 +95,4 @@ class Applications():
                                    cwd=cmd_path
                                    )
         self.core_PID[core] = process.pid
-        print("App PID is ", self.core_PID)
+        # print("App PID is ", self.core_PID)

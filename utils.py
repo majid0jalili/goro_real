@@ -1,6 +1,7 @@
 import torch
 import collections
-import random
+from random import random
+from random import randint
 import numpy as np
 from typing import Dict, List, Tuple
 from segment_tree import MinSegmentTree, SumSegmentTree
@@ -80,6 +81,9 @@ class ReplayBuffer():
 
     def __len__(self):
         return len(self.buffer)
+        
+    def size(self):
+        return len(self.buffer)
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
@@ -126,6 +130,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         indices = self._sample_proportional(batch_size)
         res_list = map(self.buffer.__getitem__, indices)
         mini_batch = list(res_list)
+        toss = random()
+        if (toss < 0.1):
+            mini_batch = random.sample(self.buffer, n)
+            
         state_lst, reward_lst, next_state_lst, done_mask_lst, actions_lst = [], [], [], [], []
 
         actions_lst = [[] for i in range(self.action_space)]

@@ -15,7 +15,7 @@ from prefetcher import Prefetcher
 parser = argparse.ArgumentParser('parameters')
 parser.add_argument('--lr_rate', type=float, default=1e-3,
                     help='learning rate (default : 0.0001)')
-parser.add_argument('--batch_size', type=int, default=32,
+parser.add_argument('--batch_size', type=int, default=16,
                     help='batch size(default : 32)')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='gamma (default : 0.99)')
@@ -42,6 +42,7 @@ total_reward = 0
 alpha = 0.2
 beta = 0.6
 loss = 0
+avg_reward = 0
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -80,7 +81,7 @@ def set_collector():
     next_state = []
     next_inst = []
     reward = 0
-    avg_reward = 0
+    global avg_reward
     itr = 0
 
     while (True):
@@ -96,27 +97,31 @@ def set_collector():
 
         r_arr = [reward]
         total_reward += reward
-        avg_reward += reward
+
 
         if (itr == 100):
-            avg_reward = avg_reward / 100
+            avg_reward = total_reward / 100
             with open(r'./avg_reward.txt', 'a') as fp:
                 fp.write('avg_reward ' + str(avg_reward) +
                          ' loss '+str(loss) +
                          '\n')
             itr = 0
-            avg_reward = 0
+            total_reward = 0
             fp.close()
-            agent.memory.beta = beta
+            
             agent.memory.write_to_csv("mem.csv")
 
         agent.memory.write_buffer(state, next_state, action, r_arr)
-        agent.memory.beta = beta + (itr/100)*(1-beta)
+        
 
         state = next_state
         insts = next_inst
 
-
+def heartbeat():
+    while(True):
+        print("Loss:{} mem_size:{} beta:{} avg_reward:{}".format(loss, agent.memory.size(), agent.memory.beta, avg_reward))
+        time.sleep(5)
+        
 def train():
     loss_itr = 0
     train_itr = 0
@@ -127,10 +132,12 @@ def train():
             loss = agent.train_model(batch_size, gamma)
             loss_itr += 1
             train_itr += 1
-            if (loss_itr == 500):
+            agent.memory.beta = beta + (itr/100)*(1-beta)
+            if (loss_itr == 100):
                 print("train_itr Loss:", train_itr, loss.item())
                 agent.save_model("model")
                 loss_itr = 0
+                agent.memory.beta = beta
 
 
 def load_model():
@@ -145,10 +152,12 @@ def main():
     t_run_app = threading.Thread(target=run_app, args=())
     t_set_collector = threading.Thread(target=set_collector, args=())
     t_train = threading.Thread(target=train, args=())
+    t_heartbeat = threading.Thread(target=heartbeat, args=())
 
     if (mlmode == "train"):
         t_train.start()
         t_run_app.start()
+        t_heartbeat.start()
     else:
         load_model()
     t_set_collector.start()
@@ -157,6 +166,7 @@ def main():
     if (mlmode == "train"):
         t_train.join()
         t_run_app.join()
+        t_heartbeat.join()
 
     # all threads completely executed
     print("Done!")
