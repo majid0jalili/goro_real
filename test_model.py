@@ -12,12 +12,14 @@ state_space = num_features_per_core*num_cpu
 action_space = num_pf_per_core*num_cpu
 action_scale = 2
 total_reward = 0
-
+alpha = 0.2
+beta = 0.6
+learning_rate = 1e-3
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 memory = ReplayBuffer(1000, action_space, device)
 agent = BQN(state_space, action_space, action_scale,
-            1e-4, device, num_cpu, num_pf_per_core)
+            learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
 
 
 model = agent.load_model("./models/model_raw", device)

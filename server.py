@@ -44,6 +44,7 @@ beta = 0.6
 loss = 0
 avg_reward = 0
 
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 agent = BQN(state_space, action_space, action_scale,
@@ -98,7 +99,6 @@ def set_collector():
         r_arr = [reward]
         total_reward += reward
 
-
         if (itr == 100):
             avg_reward = total_reward / 100
             with open(r'./avg_reward.txt', 'a') as fp:
@@ -108,20 +108,22 @@ def set_collector():
             itr = 0
             total_reward = 0
             fp.close()
-            
+
             agent.memory.write_to_csv("mem.csv")
 
         agent.memory.write_buffer(state, next_state, action, r_arr)
-        
 
         state = next_state
         insts = next_inst
 
+
 def heartbeat():
-    while(True):
-        print("Loss:{} mem_size:{} beta:{} avg_reward:{}".format(loss, agent.memory.size(), agent.memory.beta, avg_reward))
+    while (True):
+        print("Loss:{} mem_size:{} beta:{} avg_reward:{}".format(
+            loss, agent.memory.size(), agent.memory.beta, avg_reward))
         time.sleep(5)
-        
+
+
 def train():
     loss_itr = 0
     train_itr = 0

@@ -25,3 +25,7 @@ class Prefetcher():
             for m in mask[core]:
                 acc.append(m)
         return acc
+
+    def all_prefetchers_on(self):
+        for core in range(64):
+            self.prefetcher_set(core, [0])

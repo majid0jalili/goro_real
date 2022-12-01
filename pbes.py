@@ -21,6 +21,11 @@ class PEBS():
                            "instructions"
                            # "cycles"
                            ]
+        self.inference = [
+            "instructions",
+            "cycles"
+        ]
+
         self.maxes = []
         self.mins = []
         for i in range(self.num_cpu):
@@ -31,7 +36,7 @@ class PEBS():
     def make_cmd(self):
         cmd = "sudo perf stat -A -C "
         for cpu in range(self.num_cpu):
-            cmd += str(cpu)+","
+            cmd += str(2*cpu)+","
         cmd += " -e "
 
         for e in self.event_list:
@@ -97,6 +102,20 @@ class PEBS():
                     insts.append(val)
 
         return state_p, insts
+
+    def stats(self):
+        state_p = []
+        stats = self.run_perf_stat()
+
+        insts = []
+
+        for cpu in range(self.num_cpu):
+            for e in self.event_list:
+                if (e == "instructions"):
+                    val = int(stats[("CPU"+str(2*cpu), e)])
+                    insts.append(val)
+
+        return insts
 
     def print(self, stats):
         for cpu in range(self.num_cpu):
