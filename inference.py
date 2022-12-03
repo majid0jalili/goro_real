@@ -6,6 +6,7 @@ import multiprocessing
 import torch
 import time
 import csv
+import pandas as pd
 
 # BDQ
 from agent import BQN
@@ -59,15 +60,59 @@ def run_app():
             app.run_app()
         time.sleep(30)
 
-
-def run_app(run_model):
+def run_mix(run_type, paths, cmds):
     app = Applications(num_cpu)
     pebs = PEBS(num_cpu)
     pf = Prefetcher(num_cpu)
-
     cmds = []
     paths = []
     instructions = []
+    
+    app.replay_runs(paths, cmds)
+    actions = []
+    state, insts = pebs.state()
+    
+    while (True):
+        tic = time.time()
+        if(run_type == 0):
+            pf.all_prefetchers_on()
+        elif(run_type == 1): #RL
+            action = agent.action(state)
+            action = pf.all_prefetcher_set(action)
+        elif (run_type == 2) : # Random
+            action = []
+            acc_per_core = []
+            for c in range(num_cpu):
+                for pf in range(num_pf_per_core):
+                    acc_per_core.append(randint(0, 1))
+                action.append(acc_per_core)
+                acc_per_core = []
+            action = pf.all_prefetcher_set(action)
+        
+        state, insts = pebs.state()
+        instructions.append(insts)
+        print(insts)
+        wtime = 5-((time.time()-tic))
+        time.sleep(wtime)
+        if (app.num_running_apps() == 0):
+            break
+    
+    duration = app.duration()
+    
+    return instructions, duration
+    
+
+        
+
+def run_app(mix_num):
+    app = Applications(num_cpu)
+    pebs = PEBS(num_cpu)
+    pf = Prefetcher(num_cpu)
+    
+    
+    cmds = []
+    paths = []
+    instructions_base = []
     for i in range(num_cpu):
         cmd_path, cmd_bg = app.run_app()
         cmds.append(cmd_bg)
@@ -76,42 +121,54 @@ def run_app(run_model):
     pf.all_prefetchers_on()
     while (True):
         tic = time.time()
-        inst = pebs.stats()
-        instructions.append(inst)
-        print(inst)
+        state, insts = pebs.state()
+        instructions_base.append(insts)
+        print(insts)
         wtime = 5-((time.time()-tic))
         time.sleep(wtime)
         if (app.num_running_apps() == 0):
             break
-    with open(r'apps1.txt', 'w') as fp:
-        for item in cmds:
-            # write each item on a new line
-            fp.write("%s\n" % item)
-
-    with open("output1.csv", "w") as f:
-        writer = csv.writer(f)
-        writer.writerows(instructions)
+    
+    duration_base = app.duration()
     app.replay_runs(paths, cmds)
+    
     instructions = []
+    actions = []
+    state, insts = pebs.state()
     while (True):
         tic = time.time()
-        inst = pebs.stats()
-        instructions.append(inst)
-        print(inst)
+        action = agent.action(state)
+        action = pf.all_prefetcher_set(action)
+        state, insts = pebs.state()
+        instructions.append(insts)
+        actions.append(action)
+        print(insts)
         wtime = 5-((time.time()-tic))
         time.sleep(wtime)
         if (app.num_running_apps() == 0):
             break
-    with open(r'apps2.txt', 'w') as fp:
-        for item in cmds:
-            # write each item on a new line
-            fp.write("%s\n" % item)
 
-    with open("output2.csv", "w") as f:
-        writer = csv.writer(f)
-        writer.writerows(instructions)
+    duration = app.duration()
 
-
+    app_name = "app_"+str(mix_num)+".xlsx"
+    df_app = pd.DataFrame(cmds)
+    df_duration_base = pd.DataFrame(duration_base)
+    df_duration = pd.DataFrame(duration)
+    df_instructions_base = pd.DataFrame(instructions_base)
+    df_instructions = pd.DataFrame(instructions)
+    df_actions = pd.DataFrame(actions)
+    
+        
+    with pd.ExcelWriter(app_name) as writer:
+        df_app.to_excel(writer, sheet_name="apps", index=False)
+        df_duration_base.to_excel(writer, sheet_name="duration_base", index=False)
+        df_duration.to_excel(writer, sheet_name="duration", index=False)
+        df_instructions_base.to_excel(writer, sheet_name="instructions_base", index=False)
+        df_instructions.to_excel(writer, sheet_name="instructions", index=False)
+        df_actions.to_excel(writer, sheet_name="actions", index=False)
+    
+    
+   
 def heartbeat():
     while (True):
         print("Loss:{} mem_size:{} beta:{} avg_reward:{}".format(
@@ -127,22 +184,10 @@ def load_model():
 def main():
     load_model()
 
-    run_app(False)
+    for i in range(64):
+        run_app(i)
 
     return
-
-    t_run_app = threading.Thread(target=run_app, args=())
-    t_heartbeat = threading.Thread(target=heartbeat, args=())
-
-    t_set_collector.start()
-    t_heartbeat.start()
-
-    t_set_collector.join()
-    t_heartbeat.join()
-
-    # all threads completely executed
-    print("Done!")
-
 
 if __name__ == '__main__':
     main()

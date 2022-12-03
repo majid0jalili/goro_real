@@ -42,7 +42,7 @@ class PEBS():
         for e in self.event_list:
             cmd += e+","
         cmd = cmd[:-1]
-        cmd += " sleep 0.1"
+        cmd += " sleep 1"
 
         return cmd
 
@@ -84,7 +84,7 @@ class PEBS():
         for cpu in range(self.num_cpu):
             for e in self.event_list:
                 if (e != "instructions"):
-                    val = int(stats[("CPU"+str(cpu), e)])
+                    val = int(stats[("CPU"+str(cpu*2), e)])
                     vals.append(val)
                     if (val >= self.maxes[idx]):
                         self.maxes[idx] = val

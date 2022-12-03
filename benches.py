@@ -6,10 +6,10 @@ import time
 
 spec_root = "/home/cc/spec/benchspec/CPU/"
 spec_path = {
-    # "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
-    # "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
+    "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
+    "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
     "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
-    # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
+    "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
     "pr": "gapbs/",
     "sssp": "gapbs/",
@@ -17,10 +17,10 @@ spec_path = {
 }
 
 spec_cmds = {
-    # "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
-    # "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
+    "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
+    "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
     "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
-    # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
+    "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
     "pr": "/home/cc/gapbs/pr -u 23 -n 20",
     "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
@@ -33,16 +33,29 @@ class Applications():
         self.blocked = 0
         self.num_app = num_app
         self.core_PID = {}
+        self.start_time = {}
+        self.end_time = {}
 
         for i in range(self.num_app):
             self.core_PID[2*i] = -2
+            self.start_time[2*i] = -2
+            self.end_time[2*i] = -2
 
         print("App map is ", self.core_PID)
 
+    def duration(self):
+        dur = []
+        for i in range(self.num_app):
+            idx = i*2
+            dur.append(self.end_time[idx] - self.start_time[idx])
+        return dur
+        
     def force_kill_all(self):
         for i in range(self.num_app):
             os.kill(self.core_PID[i], 9)
-            self.core_PID[i] = -2
+            self.core_PID[2*i] = -2
+            self.start_time[2*i] = -2
+            self.end_time[2*i] = -2
 
     def check_pid(self, pid):
         """ Check For the existence of a unix pid. """
@@ -60,6 +73,8 @@ class Applications():
                 # print("PID ", self.core_PID[core], " is not running")
                 empty_core += 1
                 self.core_PID[core] = -2
+                if self.end_time[core] == -2 :
+                    self.end_time[core] =  time.time()
 
         return empty_core
 
@@ -95,6 +110,8 @@ class Applications():
                                    cwd=cmd_path
                                    )
         self.core_PID[core] = process.pid
+        self.start_time[core] = time.time()
+        self.end_time[core] = -2
 
         return cmd_path, cmd_bg
 
@@ -109,6 +126,8 @@ class Applications():
                                        cwd=cmd_path[idx]
                                        )
             self.core_PID[idx*2] = process.pid
+            self.start_time[idx*2] = time.time()
+            self.end_time[idx*2] = -2
             idx += 1
 
     def get_sleep_time(self, time):
