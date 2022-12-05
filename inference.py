@@ -7,6 +7,8 @@ import torch
 import time
 import csv
 import pandas as pd
+from random import random
+from random import randint
 
 # BDQ
 from agent import BQN
@@ -60,34 +62,36 @@ def run_app():
             app.run_app()
         time.sleep(30)
 
-def run_mix(run_type, paths, cmds):
+def run_mix(run_type, cmds, paths):
     app = Applications(num_cpu)
     pebs = PEBS(num_cpu)
     pf = Prefetcher(num_cpu)
-    cmds = []
-    paths = []
-    instructions = []
+   
     
     app.replay_runs(paths, cmds)
+    
     actions = []
+    instructions = []
     state, insts = pebs.state()
     
     while (True):
         tic = time.time()
-        if(run_type == 0):
+        if(run_type == "base"):
             pf.all_prefetchers_on()
-        elif(run_type == 1): #RL
+        elif(run_type == "goro"): #RL
             action = agent.action(state)
             action = pf.all_prefetcher_set(action)
-        elif (run_type == 2) : # Random
+            actions.append(action)
+        elif (run_type == "random") : # Random
             action = []
             acc_per_core = []
             for c in range(num_cpu):
-                for pf in range(num_pf_per_core):
+                for pfr in range(num_pf_per_core):
                     acc_per_core.append(randint(0, 1))
                 action.append(acc_per_core)
                 acc_per_core = []
             action = pf.all_prefetcher_set(action)
+            actions.append(action)
         
         state, insts = pebs.state()
         instructions.append(insts)
@@ -99,73 +103,38 @@ def run_mix(run_type, paths, cmds):
     
     duration = app.duration()
     
-    return instructions, duration
+    return instructions, duration, actions
     
 
         
 
 def run_app(mix_num):
+    run_mode = ["base", "goro", "random"]
     app = Applications(num_cpu)
-    pebs = PEBS(num_cpu)
-    pf = Prefetcher(num_cpu)
-    
-    
     cmds = []
     paths = []
-    instructions_base = []
     for i in range(num_cpu):
-        cmd_path, cmd_bg = app.run_app()
+        cmd_path, cmd_bg = app.get_spec_app(i*2)
         cmds.append(cmd_bg)
         paths.append(cmd_path)
-
-    pf.all_prefetchers_on()
-    while (True):
-        tic = time.time()
-        state, insts = pebs.state()
-        instructions_base.append(insts)
-        print(insts)
-        wtime = 5-((time.time()-tic))
-        time.sleep(wtime)
-        if (app.num_running_apps() == 0):
-            break
+    del app
     
-    duration_base = app.duration()
-    app.replay_runs(paths, cmds)
-    
-    instructions = []
-    actions = []
-    state, insts = pebs.state()
-    while (True):
-        tic = time.time()
-        action = agent.action(state)
-        action = pf.all_prefetcher_set(action)
-        state, insts = pebs.state()
-        instructions.append(insts)
-        actions.append(action)
-        print(insts)
-        wtime = 5-((time.time()-tic))
-        time.sleep(wtime)
-        if (app.num_running_apps() == 0):
-            break
-
-    duration = app.duration()
-
     app_name = "app_"+str(mix_num)+".xlsx"
-    df_app = pd.DataFrame(cmds)
-    df_duration_base = pd.DataFrame(duration_base)
-    df_duration = pd.DataFrame(duration)
-    df_instructions_base = pd.DataFrame(instructions_base)
-    df_instructions = pd.DataFrame(instructions)
-    df_actions = pd.DataFrame(actions)
-    
-        
+    df_cmds = pd.DataFrame(cmds)
     with pd.ExcelWriter(app_name) as writer:
-        df_app.to_excel(writer, sheet_name="apps", index=False)
-        df_duration_base.to_excel(writer, sheet_name="duration_base", index=False)
-        df_duration.to_excel(writer, sheet_name="duration", index=False)
-        df_instructions_base.to_excel(writer, sheet_name="instructions_base", index=False)
-        df_instructions.to_excel(writer, sheet_name="instructions", index=False)
-        df_actions.to_excel(writer, sheet_name="actions", index=False)
+        df_cmds.to_excel(writer, sheet_name="apps", index=False)
+            
+    for r_mode in run_mode:
+        instructions, duration, actions = run_mix(r_mode, cmds, paths)
+        df_inst = pd.DataFrame(instructions)
+        df_dur = pd.DataFrame(duration)
+        df_act = pd.DataFrame(actions)
+        
+        with pd.ExcelWriter(app_name, mode='a') as writer:
+            df_inst.to_excel(writer, sheet_name="inst_"+r_mode, index=False)
+            df_dur.to_excel(writer, sheet_name="duration_"+r_mode, index=False)
+            df_act.to_excel(writer, sheet_name="actions_"+r_mode, index=False)
+
     
     
    
