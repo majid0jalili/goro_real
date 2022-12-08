@@ -96,8 +96,9 @@ def run_mix(run_type, cmds, paths):
         state, insts = pebs.state()
         instructions.append(insts)
         print(insts)
-        wtime = 5-((time.time()-tic))
-        time.sleep(wtime)
+        wtime = 3 -((time.time()-tic))
+        if(wtime > 0):
+            time.sleep(wtime)
         if (app.num_running_apps() == 0):
             break
     

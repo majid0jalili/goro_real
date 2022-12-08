@@ -87,13 +87,17 @@ def set_collector():
 
     while (True):
         itr += 1
+        tic = time.time()
+        state = torch.rand((1, state_space)).float().to(device)
         action = agent.action(state)
+        toc = time.time()
+        print("Length", toc-tic)
         action = pf.all_prefetcher_set(action)
         next_state, next_inst = pebs.state()
         reward = 0
         for inst in range(len(insts)):
             if (insts[inst] != 0):
-                if ((next_inst[inst] / insts[inst]) - 1 < 2 and (next_inst[inst] / insts[inst]) - 1 > -2):
+                if ((next_inst[inst] / insts[inst]) - 1 < 4 and (next_inst[inst] / insts[inst]) - 1 > -4):
                     reward += (next_inst[inst] / insts[inst]) - 1
 
         r_arr = [reward]
@@ -101,6 +105,7 @@ def set_collector():
 
         if (itr == 100):
             avg_reward = total_reward / 100
+            
             with open(r'./avg_reward.txt', 'a') as fp:
                 fp.write('avg_reward ' + str(avg_reward) +
                          ' loss '+str(loss) +
@@ -109,7 +114,7 @@ def set_collector():
             total_reward = 0
             fp.close()
 
-            agent.memory.write_to_csv("mem.csv")
+            agent.memory.write_to_csv("mem.xlsx")
 
         agent.memory.write_buffer(state, next_state, action, r_arr)
 
@@ -130,7 +135,7 @@ def train():
     global loss
     print("Function train")
     while True:
-        if (agent.memory.size() > batch_size):
+        if (agent.memory.size() > 10*batch_size):
             loss = agent.train_model(batch_size, gamma)
             loss_itr += 1
             train_itr += 1

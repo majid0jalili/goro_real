@@ -4,7 +4,7 @@ from random import uniform, random, choice, sample, randint
 import numpy as np
 from typing import Dict, List, Tuple
 from segment_tree import MinSegmentTree, SumSegmentTree
-
+import pandas as pd
 
 class ReplayBuffer():
     def __init__(self, buffer_limit, action_space, device):
@@ -19,18 +19,17 @@ class ReplayBuffer():
     def clear_buf(self):
         self.buffer = collections.deque(maxlen=self.buffer_limit)
 
-    # write the buffer to a csv file
     def write_to_csv(self, filename):
-        import csv
-        with open(filename, 'w', newline='') as csvfile:
-            fieldnames = ['state', 'action', 'reward', 'next_state', 'done']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-            writer.writeheader()
-            for transition in self.buffer:
-                state, actions, reward, next_state, done_mask = transition
-                writer.writerow({'state': state, 'action': actions, 'reward': reward,
-                                 'next_state': next_state, 'done': done_mask})
+        with pd.ExcelWriter(filename, mode='w') as writer:        
+            state = list(zip(*self.buffer))[0]
+            actions = list(zip(*self.buffer))[2]
+            
+            state_pd = pd.DataFrame(state)
+            actions_pd = pd.DataFrame(actions)
+
+            state_pd.to_excel(writer, sheet_name="state", index=False)
+            actions_pd.to_excel(writer, sheet_name="action", index=False)
 
     def load_from_csv(self, filename):
         import csv

@@ -3,13 +3,13 @@ import os
 import subprocess
 import time
 
-
+# sudo perf stat -a  -M DRAM_BW_Use -e  llc_misses.mem_read,L1-dcache-load-misses,l2_rqsts.miss,offcore_requests.all_data_rd,offcore_requests_buffer.sq_full,uops_executed.stall_cycles,instructions
 class PEBS():
     def __init__(self, num_cpu):
         self.num_cpu = num_cpu
         self.perf_read = 0
         self.event_list = ["L1-dcache-load-misses",
-                           "LLC-load-misses",
+                           "llc_misses.mem_read",
                            # "l2_rqsts.all_pf",
                            "l2_rqsts.miss",
                            # "mem_load_retired.l1_hit",
@@ -34,7 +34,7 @@ class PEBS():
                 self.mins.append(999999999)
 
     def make_cmd(self):
-        cmd = "sudo perf stat -A -C "
+        cmd = "sudo perf stat -a -A -C "
         for cpu in range(self.num_cpu):
             cmd += str(2*cpu)+","
         cmd += " -e "
@@ -60,12 +60,17 @@ class PEBS():
         for l in lines:
             l = " ".join(l.split())
             l = l.split(" ")
-            stats[(l[0], l[2])] = l[1]
+            if(l[2] == "Bytes"):
+                stats[(l[0], l[3])] = l[1]
+            else:
+                stats[(l[0], l[2])] = l[1]
+                
         return stats
 
     def state(self):
         state_p = []
         stats = self.run_perf_stat()
+        # print("stats", stats)
         idx = 0
         vals = []
         insts = []
@@ -93,10 +98,11 @@ class PEBS():
 
                     ratio = 0
                     if (self.maxes[idx]):
-                        ratio = 255 * \
+                        ratio = 1 * \
                             ((val - self.mins[idx]) / self.maxes[idx])
 
-                    state_p.append(int(ratio))
+                    # state_p.append(int(ratio))
+                    state_p.append(ratio)
                     idx += 1
                 elif (e == "instructions"):
                     insts.append(val)

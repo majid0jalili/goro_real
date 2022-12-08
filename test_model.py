@@ -22,7 +22,7 @@ agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
 
 
-model = agent.load_model("./models/model_raw", device)
+model = agent.load_model("./models/model", device)
 
 print("Done")
 '''
@@ -31,10 +31,18 @@ for name, param in model.named_parameters():
         print(torch.histc(param, 16))
         print(param)
 '''
+duration = 0
 for i in range(100):
-    state = torch.randint(0, 255, (1, state_space)).float().to(device)
+    # state = torch.randint(0, 255, (1, state_space)).float().to(device)
+    state = torch.rand((1, state_space)).float().to(device)
+    print("state", state)
+    tic = time.time()
     action = agent.action(state)
+    toc = time.time()
     ones = sum(x.count(1) for x in action)
     zeros = sum(x.count(0) for x in action)
     tot = ones + zeros
-    print("Fraction 0  1", zeros/tot, ones/tot)
+    duration += (toc-tic)
+    
+    # print("Fraction 0  1", zeros/tot, ones/tot)
+print("Duration", duration/100)
