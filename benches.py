@@ -9,10 +9,10 @@ spec_path = {
     # "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
     # "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
     # "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
-    "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
+    # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
     # "pr": "gapbs/",
-    # "sssp": "gapbs/",
+    "sssp": "gapbs/",
     # "bc": "gapbs/"
 }
 
@@ -20,10 +20,10 @@ spec_cmds = {
     # "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
     # "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
     # "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
-    "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
+    # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
     # "pr": "/home/cc/gapbs/pr -u 23 -n 20",
-    # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
+    "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
     # "bc": "/home/cc/gapbs/bc -u 23 -n 20",
 }
 
@@ -43,6 +43,11 @@ class Applications():
 
         print("App map is ", self.core_PID)
 
+    def print_apps(self):
+        print("Apps running")
+        print(self.core_PID)
+        print(self.start_time)
+    
     def duration(self):
         dur = []
         for i in range(self.num_app):

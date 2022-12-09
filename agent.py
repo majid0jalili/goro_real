@@ -24,10 +24,12 @@ class BQN(nn.Module):
             10000, action_num, device, alpha, beta)
 
         self.q = QNetwork(state_space, action_num, action_scale).to(device)
+        self.q.share_memory()
         self.target_q = QNetwork(
             state_space, action_num, action_scale).to(device)
         self.target_q.load_state_dict(self.q.state_dict())
-
+        self.target_q.share_memory()
+        
         self.optimizer = optim.Adam([
             {'params': self.q.linear_1.parameters(), 'weight_decay': 1e-4,
              'lr': learning_rate / (action_num+2)},

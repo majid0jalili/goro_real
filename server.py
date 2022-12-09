@@ -6,6 +6,11 @@ import multiprocessing
 import torch
 import time
 
+from concurrent.futures import ProcessPoolExecutor
+from torch.multiprocessing import Process, set_start_method, Queue
+import asyncio
+
+
 # BDQ
 from agent import BQN
 from benches import Applications
@@ -47,8 +52,7 @@ avg_reward = 0
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-agent = BQN(state_space, action_space, action_scale,
-            learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
+
 
 
 def summary():
@@ -71,9 +75,11 @@ def run_app():
         for i in range(num_cpu):
             app.run_app()
         time.sleep(30)
+        print("Checking the running apps")
+        app.print_apps()
 
 
-def set_collector():
+def set_collector(agent, queue_mem, queue_q):
     print("Function set_collector")
     pebs = PEBS(num_cpu)
     pf = Prefetcher(num_cpu)
@@ -84,16 +90,28 @@ def set_collector():
     reward = 0
     global avg_reward
     itr = 0
-
+   
     while (True):
         itr += 1
+        
+        elapsed = {}
         tic = time.time()
-        state = torch.rand((1, state_space)).float().to(device)
         action = agent.action(state)
         toc = time.time()
-        print("Length", toc-tic)
+        elapsed["action"]=(toc-tic)
+        
+        tic = time.time()
         action = pf.all_prefetcher_set(action)
+        toc = time.time()
+        elapsed["pf_Set"]=(toc-tic)
+        
+        tic = time.time()
         next_state, next_inst = pebs.state()
+        toc = time.time()
+        elapsed["read_state"]=(toc-tic)
+        
+        
+        
         reward = 0
         for inst in range(len(insts)):
             if (insts[inst] != 0):
@@ -102,82 +120,82 @@ def set_collector():
 
         r_arr = [reward]
         total_reward += reward
-
+        
+        
         if (itr == 100):
+            print(elapsed)
             avg_reward = total_reward / 100
             
             with open(r'./avg_reward.txt', 'a') as fp:
                 fp.write('avg_reward ' + str(avg_reward) +
-                         ' loss '+str(loss) +
-                         '\n')
+                          '\n')
             itr = 0
             total_reward = 0
             fp.close()
-
+            print("set_collector avg_reward", avg_reward)
             agent.memory.write_to_csv("mem.xlsx")
-
+            queue_mem.put(agent.memory)
+            q = queue_q.get()
+            agent.q = q
+   
         agent.memory.write_buffer(state, next_state, action, r_arr)
-
+       
+   
         state = next_state
         insts = next_inst
 
 
-def heartbeat():
-    while (True):
-        print("Loss:{} mem_size:{} beta:{} avg_reward:{}".format(
-            loss, agent.memory.size(), agent.memory.beta, avg_reward))
-        time.sleep(5)
 
 
-def train():
-    loss_itr = 0
-    train_itr = 0
-    global loss
+def train(agent, queue_mem, queue_q):
+    
     print("Function train")
     while True:
-        if (agent.memory.size() > 10*batch_size):
-            loss = agent.train_model(batch_size, gamma)
-            loss_itr += 1
-            train_itr += 1
-            agent.memory.beta = beta + (loss_itr/100)*(1-beta)
-            if (loss_itr == 100):
-                # print("train_itr Loss:", train_itr, loss.item())
-                agent.save_model("model")
-                loss_itr = 0
-                agent.memory.beta = beta
+       
+        mem = queue_mem.get()
+        agent.memory = mem
+        queue_q.put(agent.q)
+         
+        if (agent.memory.size() > 1*batch_size):
+            for t in range(1000):
+                loss = agent.train_model(batch_size, gamma)
+                agent.memory.beta = beta + (t/100)*(1-beta)
+                
+            print("Loss:", loss.item())
+            agent.save_model("model")
+
+            agent.memory.beta = beta
 
 
-def load_model():
+def load_model(agent):
     print("Function load_model")
     agent.load_model("./models/model", device)
 
 
 def main():
-    # summary()
+ 
+    agent = BQN(state_space, action_space, action_scale,
+            learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
+      
+    lstProcesses = []
+    try:
+        set_start_method('spawn')
+    except RuntimeError as e:
+        print(e)
+    queue_mem = Queue()
+    queue_q = Queue()
 
-    # creating thread
-    t_run_app = threading.Thread(target=run_app, args=())
-    t_set_collector = threading.Thread(target=set_collector, args=())
-    t_train = threading.Thread(target=train, args=())
-    t_heartbeat = threading.Thread(target=heartbeat, args=())
+    # lstProcesses.append(Process(target=run_app))
+    lstProcesses.append(Process(target=set_collector, args=(agent, queue_mem, queue_q, )))
+    lstProcesses.append(Process(target=train, args=(agent, queue_mem, queue_q)))
+    # lstProcesses.append(Process(target=heartbeat, args=[agent]))
 
-    if (mlmode == "train"):
-        t_train.start()
-        t_run_app.start()
-        t_heartbeat.start()
-    else:
-        load_model()
-    t_set_collector.start()
-
-    t_set_collector.join()
-    if (mlmode == "train"):
-        t_train.join()
-        t_run_app.join()
-        t_heartbeat.join()
-
-    # all threads completely executed
-    print("Done!")
-
-
+    for objProcess in lstProcesses:
+        objProcess.start()
+    run_app()
+    for objProcess in lstProcesses:
+        objProcess.join()
+    
 if __name__ == '__main__':
-    main()
+   
+    asyncio.run(main())

@@ -1,10 +1,13 @@
 import torch
+import os
 import collections
 from random import uniform, random, choice, sample, randint
 import numpy as np
 from typing import Dict, List, Tuple
 from segment_tree import MinSegmentTree, SumSegmentTree
 import pandas as pd
+import pickle
+
 
 class ReplayBuffer():
     def __init__(self, buffer_limit, action_space, device):
@@ -31,6 +34,22 @@ class ReplayBuffer():
             state_pd.to_excel(writer, sheet_name="state", index=False)
             actions_pd.to_excel(writer, sheet_name="action", index=False)
 
+    def serialize(self):
+        dbfile = open('./examplePickle', 'wb')
+        # source, destination
+        pickle.dump(self.buffer, dbfile)                     
+        dbfile.close()
+        
+    def deserialize(self):
+        try:
+            if os.path.exists('./examplePickle'):      
+                if os.path.getsize('./examplePickle') > 0:      
+                    with open('./examplePickle', "rb") as f:
+                        self.buffer = pickle.load(f)                     
+                    # f.close()    
+        except EOFError as e:
+            print(e, os.path.exists('./examplePickle'), os.path.getsize('./examplePickle'))
+    
     def load_from_csv(self, filename):
         import csv
         with open(filename, newline='') as csvfile:

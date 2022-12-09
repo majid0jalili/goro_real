@@ -9,17 +9,12 @@ class PEBS():
         self.num_cpu = num_cpu
         self.perf_read = 0
         self.event_list = ["L1-dcache-load-misses",
-                           "llc_misses.mem_read",
-                           # "l2_rqsts.all_pf",
-                           "l2_rqsts.miss",
-                           # "mem_load_retired.l1_hit",
-                           # "mem_load_retired.l2_hit",
-                           # "mem_load_retired.l3_hit",
-                           "offcore_requests.all_data_rd",
-                           "offcore_requests_buffer.sq_full",
-                           "uops_executed.stall_cycles",
+                           "LLC-load-misses",
+                           "LLC-store-misses",
+                           "node-load-misses",
+                           "node-store-misses",
+                           "branch-misses",
                            "instructions"
-                           # "cycles"
                            ]
         self.inference = [
             "instructions",
@@ -42,7 +37,7 @@ class PEBS():
         for e in self.event_list:
             cmd += e+","
         cmd = cmd[:-1]
-        cmd += " sleep 1"
+        cmd += " sleep 0.1"
 
         return cmd
 
@@ -69,8 +64,10 @@ class PEBS():
 
     def state(self):
         state_p = []
+      
         stats = self.run_perf_stat()
-        # print("stats", stats)
+  
+       
         idx = 0
         vals = []
         insts = []
