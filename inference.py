@@ -65,7 +65,7 @@ def run_app():
 def run_mix(run_type, cmds, paths):
     app = Applications(num_cpu)
     pebs = PEBS(num_cpu)
-    pf = Prefetcher(num_cpu)
+    pf = Prefetcher(num_cpu, num_pf_per_core)
    
     
     app.replay_runs(paths, cmds)

@@ -26,7 +26,7 @@ class ReplayBuffer():
 
         with pd.ExcelWriter(filename, mode='w') as writer:        
             state = list(zip(*self.buffer))[0]
-            actions = list(zip(*self.buffer))[2]
+            actions = list(zip(*self.buffer))[1]
             
             state_pd = pd.DataFrame(state)
             actions_pd = pd.DataFrame(actions)

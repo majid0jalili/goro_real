@@ -32,17 +32,20 @@ for name, param in model.named_parameters():
         print(param)
 '''
 duration = 0
+tot = 0
+ones = 0
+zeros = 0
 for i in range(100):
     # state = torch.randint(0, 255, (1, state_space)).float().to(device)
     state = torch.rand((1, state_space)).float().to(device)
-    print("state", state)
+    #print("state", state)
     tic = time.time()
     action = agent.action(state)
     toc = time.time()
-    ones = sum(x.count(1) for x in action)
-    zeros = sum(x.count(0) for x in action)
-    tot = ones + zeros
-    duration += (toc-tic)
+    ones += sum(x.count(1) for x in action)
+    zeros += sum(x.count(0) for x in action)
     
-    # print("Fraction 0  1", zeros/tot, ones/tot)
+    duration += (toc-tic)
+tot = zeros + ones    
+print("Fraction 0  1", zeros/tot, ones/tot)
 print("Duration", duration/100)
