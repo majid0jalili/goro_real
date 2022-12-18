@@ -9,6 +9,7 @@ import csv
 import pandas as pd
 from random import random
 from random import randint
+from datetime import datetime
 
 # BDQ
 from agent import BQN
@@ -62,7 +63,7 @@ def run_app():
             app.run_app()
         time.sleep(30)
 
-def run_mix(run_type, cmds, paths):
+def run_mix(run_type, cmds, paths, mix_num):
     app = Applications(num_cpu)
     pebs = PEBS(num_cpu)
     pf = Prefetcher(num_cpu, num_pf_per_core)
@@ -72,19 +73,30 @@ def run_mix(run_type, cmds, paths):
     
     actions = []
     instructions = []
-    state, insts = pebs.state()
+    all_misses = []
+    state, insts, llc_misses = pebs.state()
+    
+    bw = False
     
     while (True):
         tic = time.time()
+        if(bw == False):
+            bw = True
+            print("-----Launched the BASE")
+            app.run_bw("app_"+str(mix_num)+str("_bw_"+str(run_type)))
+                
         if(run_type == "base"):
             pf.all_prefetchers_on()
+            
         elif(run_type == "goro"): #RL
             action = agent.action(state)
             action = pf.all_prefetcher_set(action)
             actions.append(action)
+                
         elif (run_type == "random") : # Random
             action = []
             acc_per_core = []
+                
             for c in range(num_cpu):
                 for pfr in range(num_pf_per_core):
                     acc_per_core.append(randint(0, 1))
@@ -93,8 +105,9 @@ def run_mix(run_type, cmds, paths):
             action = pf.all_prefetcher_set(action)
             actions.append(action)
         
-        state, insts = pebs.state()
+        state, insts, llc_misses = pebs.state()
         instructions.append(insts)
+        all_misses.append(llc_misses)
         print(insts)
         wtime = 3 -((time.time()-tic))
         if(wtime > 0):
@@ -103,8 +116,9 @@ def run_mix(run_type, cmds, paths):
             break
     
     duration = app.duration()
+    app.kill_bw()
     
-    return instructions, duration, actions
+    return instructions, duration, actions, all_misses
     
 
         
@@ -114,6 +128,7 @@ def run_app(mix_num):
     app = Applications(num_cpu)
     cmds = []
     paths = []
+    
     for i in range(num_cpu):
         cmd_path, cmd_bg = app.get_spec_app(i*2)
         cmds.append(cmd_bg)
@@ -125,16 +140,25 @@ def run_app(mix_num):
     with pd.ExcelWriter(app_name) as writer:
         df_cmds.to_excel(writer, sheet_name="apps", index=False)
             
+    
     for r_mode in run_mode:
-        instructions, duration, actions = run_mix(r_mode, cmds, paths)
+        times = []
+        times.append(datetime.now())
+        instructions, duration, actions, all_misses = run_mix(r_mode, cmds, paths, mix_num)
+        times.append(datetime.now())
+        
         df_inst = pd.DataFrame(instructions)
         df_dur = pd.DataFrame(duration)
         df_act = pd.DataFrame(actions)
+        df_all_misses = pd.DataFrame(all_misses)
+        df_times = pd.DataFrame(times)
         
         with pd.ExcelWriter(app_name, mode='a') as writer:
             df_inst.to_excel(writer, sheet_name="inst_"+r_mode, index=False)
             df_dur.to_excel(writer, sheet_name="duration_"+r_mode, index=False)
             df_act.to_excel(writer, sheet_name="actions_"+r_mode, index=False)
+            df_all_misses.to_excel(writer, sheet_name="misses_"+r_mode, index=False)
+            df_times.to_excel(writer, sheet_name="times"+r_mode, index=False)
 
     
     

@@ -56,7 +56,8 @@ class BQN(nn.Module):
         if (toss < 0.1):
             for c in range(self.num_cpu):
                 for pf in range(self.num_pf_per_core):
-                    acc_per_core.append(randint(0, 1))
+                    # acc_per_core.append(randint(0, 1))
+                    acc_per_core.append(0)
                 acc.append(acc_per_core)
                 acc_per_core = []
         else:

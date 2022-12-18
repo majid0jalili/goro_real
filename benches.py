@@ -2,29 +2,30 @@ import random
 import os
 import subprocess
 import time
-
+import signal
+from subprocess import Popen
 
 spec_root = "/home/cc/spec/benchspec/CPU/"
 spec_path = {
-    # "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
+    "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
     # "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
-    # "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
+    "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
     # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
-    # "pr": "gapbs/",
-    "sssp": "gapbs/",
-    # "bc": "gapbs/"
+    "pr": "gapbs/",
+    # "sssp": "gapbs/",
+    "bc": "gapbs/"
 }
 
 spec_cmds = {
-    # "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
+    "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
     # "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
-    # "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
+    "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
-    # "pr": "/home/cc/gapbs/pr -u 23 -n 20",
-    "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    # "bc": "/home/cc/gapbs/bc -u 23 -n 20",
+    "pr": "/home/cc/gapbs/pr -u 23 -n 20",
+    # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
+    "bc": "/home/cc/gapbs/bc -u 23 -n 20",
 }
 
 
@@ -35,6 +36,8 @@ class Applications():
         self.core_PID = {}
         self.start_time = {}
         self.end_time = {}
+        self.bw_PID = -2
+        print("---------------")
 
         for i in range(self.num_app):
             self.core_PID[2*i] = -2
@@ -43,6 +46,29 @@ class Applications():
 
         print("App map is ", self.core_PID)
 
+        
+    def kill_bw(self):
+        cmd_bg = "sudo pkill -f pcm-memory*"
+        print("run_bw killed the last run the new", cmd_bg, self.bw_PID)
+        process = subprocess.Popen(cmd_bg,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               shell=True)
+        output, errors = process.communicate()
+        print(output, errors)
+    
+    def run_bw(self, output):
+        self.kill_bw()
+        cmd_path = "./"
+        cmd_bg = "sudo /home/cc/test/pcm/build/bin/pcm-memory -csv="+str(output)+".csv"
+        process = subprocess.Popen(cmd_bg,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
+                                   shell=True,
+                                   cwd=cmd_path
+                                   )
+        print("-**--------PID", process.pid, self.bw_PID)
+        
     def print_apps(self):
         print("Apps running")
         print(self.core_PID)

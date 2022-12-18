@@ -71,6 +71,8 @@ class PEBS():
         idx = 0
         vals = []
         insts = []
+        LLC_store_miss = []
+        LLC_load_miss = []
 
         self.perf_read += 1
         if (self.perf_read == 100):
@@ -85,8 +87,13 @@ class PEBS():
         idx = 0
         for cpu in range(self.num_cpu):
             for e in self.event_list:
+                val = int(stats[("CPU"+str(cpu*2), e)])
+                if(e == "LLC-load-misses"):
+                    LLC_load_miss.append(val)
+                if(e == "LLC-store-misses"):
+                    LLC_store_miss.append(val)
+                    
                 if (e != "instructions"):
-                    val = int(stats[("CPU"+str(cpu*2), e)])
                     vals.append(val)
                     if (val >= self.maxes[idx]):
                         self.maxes[idx] = val
@@ -104,7 +111,10 @@ class PEBS():
                 elif (e == "instructions"):
                     insts.append(val)
 
-        return state_p, insts
+        LLC_miss = []
+        for i in range(len(LLC_store_miss)):
+            LLC_miss.append(LLC_store_miss[i]+LLC_load_miss[i])
+        return state_p, insts, LLC_miss
 
     def stats(self):
         state_p = []

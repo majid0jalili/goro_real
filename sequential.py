@@ -72,10 +72,11 @@ def train(agent):
     pf = Prefetcher(num_cpu, num_pf_per_core)
     app = Applications(num_cpu)
     total_reward = 0
-    state, insts = pebs.state()
+    state, insts, llc_misses = pebs.state()
     next_state = []
     next_inst = []
     avg_reward = 0
+    total_llc_misses = llc_misses
     itr = 0
     loss = 0
     elapsed = {}
@@ -97,11 +98,12 @@ def train(agent):
         elapsed["pf_Set"]=(toc-tic)
         
         tic = time.time()
-        next_state, next_inst = pebs.state()
+        next_state, next_inst, llc_misses = pebs.state()
         toc = time.time()
         elapsed["read_state"]=(toc-tic)
         
         
+        total_llc_misses = [sum(i) for i in zip(total_llc_misses, llc_misses )]  
         
         reward = 0
         for inst in range(len(insts)):
@@ -118,12 +120,14 @@ def train(agent):
             avg_reward = total_reward / 100
             
             with open(r'./avg_reward.txt', 'a') as fp:
-                fp.write('avg_reward ' + str(avg_reward) +
-                         ' loss '+str(loss)+
-                          '\n')
+                fp.write('avg_reward ' + str(round(avg_reward, 3)) +
+                         ' loss '+str(loss)+" ")
+                fp.write(" ".join(str(item) for item in total_llc_misses))
+                fp.write("\n")
             itr = 0
             total_reward = 0
             fp.close()
+            total_llc_misses = llc_misses
             agent.memory.write_to_csv("mem.xlsx")
             agent.save_model("model")
             agent.memory.beta = beta
