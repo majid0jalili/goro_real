@@ -8,13 +8,13 @@ class PEBS():
     def __init__(self, num_cpu):
         self.num_cpu = num_cpu
         self.perf_read = 0
-        self.event_list = ["L1-dcache-load-misses",
-                           "LLC-load-misses",
-                           "LLC-store-misses",
-                           "node-load-misses",
-                           "node-store-misses",
-                           "branch-misses",
-                           "instructions"
+        self.event_list = ["L1-dcache-load-misses", # 92
+                           "LLC-load-misses",# 39
+                           "LLC-store-misses",# 45
+                           "node-load-misses",# 34
+                           "dTLB-load-misses",# 25
+                           "branch-misses",# 05
+                           "instructions"# 1
                            ]
         self.inference = [
             "instructions",
@@ -93,22 +93,23 @@ class PEBS():
                 if(e == "LLC-store-misses"):
                     LLC_store_miss.append(val)
                     
-                if (e != "instructions"):
-                    vals.append(val)
-                    if (val >= self.maxes[idx]):
-                        self.maxes[idx] = val
-                    if (val < self.mins[idx]):
-                        self.mins[idx] = val
+                
+                vals.append(val)
+                if (val >= self.maxes[idx]):
+                    self.maxes[idx] = val
+                if (val < self.mins[idx]):
+                    self.mins[idx] = val
 
-                    ratio = 0
-                    if (self.maxes[idx]):
-                        ratio = 1 * \
-                            ((val - self.mins[idx]) / self.maxes[idx])
+                ratio = 0
+                if (self.maxes[idx]):
+                    ratio = 1 * \
+                        ((val - self.mins[idx]) / self.maxes[idx])
 
-                    # state_p.append(int(ratio))
-                    state_p.append(ratio)
-                    idx += 1
-                elif (e == "instructions"):
+                # state_p.append(int(ratio))
+                state_p.append(ratio)
+                idx += 1
+                
+                if (e == "instructions"):
                     insts.append(val)
 
         LLC_miss = []

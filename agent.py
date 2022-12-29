@@ -19,9 +19,9 @@ class BQN(nn.Module):
         self.action_num = action_num
         self.prior_eps = 1e-6
 
-        # self.memory = ReplayBuffer(10000, action_num, device)
+        # self.memory = ReplayBuffer(5000, action_num, device)
         self.memory = PrioritizedReplayBuffer(
-            10000, action_num, device, alpha, beta)
+            5000, action_num, device, alpha, beta)
 
         self.q = QNetwork(state_space, action_num, action_scale).to(device)
         self.q.share_memory()
@@ -48,16 +48,21 @@ class BQN(nn.Module):
         # self.load_model("./models/model", self.device)
         self.save_model("model_raw")
 
-    def action(self, x):
+    def action(self, x, inference):
         acc = []
         acc_per_core = []
         out = self.q(torch.tensor(x, dtype=torch.float).to(self.device))
         toss = random()
-        if (toss < 0.1):
+        if (toss < 0.05 and not inference):
             for c in range(self.num_cpu):
                 for pf in range(self.num_pf_per_core):
-                    # acc_per_core.append(randint(0, 1))
                     acc_per_core.append(0)
+                acc.append(acc_per_core)
+                acc_per_core = []
+        if (toss < 0.15 and not inference):
+            for c in range(self.num_cpu):
+                for pf in range(self.num_pf_per_core):
+                    acc_per_core.append(randint(0, 1))
                 acc.append(acc_per_core)
                 acc_per_core = []
         else:
@@ -65,16 +70,23 @@ class BQN(nn.Module):
             for tor in out:
                 all_acc.append(torch.argmax(tor, dim=1)[[0]].item())
             pf_idx = 0
-
             for c in range(self.num_cpu):
                 for pf in range(self.num_pf_per_core):
-                    acc_per_core.append(all_acc[pf_idx])
+                    acc_per_core.append((all_acc[c]>>pf)&0x1)
                     pf_idx += 1
                 acc.append(acc_per_core)
                 acc_per_core = []
 
         return acc
-
+  
+    def action_test(self, x):
+        out = self.q(torch.tensor(x, dtype=torch.float).to(self.device))
+   
+        all_acc = []
+        for tor in out:
+            all_acc.append(torch.argmax(tor, dim=1)[[0]].item())
+        return all_acc
+        
     def save_model(self, name):
         torch.save({
             'modelA_state_dict': self.q.state_dict(),

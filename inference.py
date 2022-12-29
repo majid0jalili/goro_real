@@ -37,11 +37,12 @@ mlmode = args.mlmode
 
 num_cpu = 16
 num_pf_per_core = 4
-num_features_per_core = 6
+num_features_per_core = 7
 
 state_space = num_features_per_core*num_cpu
-action_space = num_pf_per_core*num_cpu
-action_scale = 2
+action_space = num_cpu
+action_scale = pow(2, num_pf_per_core)
+
 total_reward = 0
 
 alpha = 0.2
@@ -89,7 +90,7 @@ def run_mix(run_type, cmds, paths, mix_num):
             pf.all_prefetchers_on()
             
         elif(run_type == "goro"): #RL
-            action = agent.action(state)
+            action = agent.action(state, True)
             action = pf.all_prefetcher_set(action)
             actions.append(action)
                 

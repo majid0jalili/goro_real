@@ -150,6 +150,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         toss = random()
         if (toss < 0.1):
             mini_batch = sample(self.buffer, batch_size)
+        # mini_batch = sample(self.buffer, batch_size)
             
         state_lst, reward_lst, next_state_lst, done_mask_lst, actions_lst = [], [], [], [], []
 

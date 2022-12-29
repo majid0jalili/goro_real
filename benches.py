@@ -8,24 +8,26 @@ from subprocess import Popen
 spec_root = "/home/cc/spec/benchspec/CPU/"
 spec_path = {
     "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
-    # "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
+    "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
+    "sleep": "./",
     "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
     # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
-    "pr": "gapbs/",
+    # "pr": "gapbs/",
     # "sssp": "gapbs/",
-    "bc": "gapbs/"
+    # "bc": "gapbs/"
 }
 
 spec_cmds = {
     "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
-    # "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
+    "sleep": "sleep 5m",
+    "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
     "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
-    "pr": "/home/cc/gapbs/pr -u 23 -n 20",
+    # "pr": "/home/cc/gapbs/pr -u 23 -n 20",
     # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    "bc": "/home/cc/gapbs/bc -u 23 -n 20",
+    # "bc": "/home/cc/gapbs/bc -u 23 -n 20",
 }
 
 
@@ -212,3 +214,8 @@ class Applications():
             finally:
                 if errs != None:
                     print("errs ", errs.decode())
+
+app = Applications(16)
+
+for i in range(16):
+    app.run_app()
