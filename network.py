@@ -16,7 +16,7 @@ class QNetwork(nn.Module):
         # self.linear_6 = nn.Linear(1024, 1024) 
         # self.linear_7 = nn.Linear(1024, 1024) 
         # self.linear_8 = nn.Linear(1024, 256) 
-        nn.init.xavier_uniform_(self.linear_1.weight)
+        # nn.init.xavier_uniform_(self.linear_1.weight)
         # nn.init.xavier_uniform(self.linear_1.bias)
         
         self.actions = [nn.Sequential(nn.Linear(256, 256),
@@ -33,8 +33,8 @@ class QNetwork(nn.Module):
         
         
         self.actions = nn.ModuleList(self.actions)
-        nn.init.xavier_uniform_(self.actions[0][0].weight)
-        nn.init.xavier_uniform_(self.actions[1][0].weight)
+        # nn.init.xavier_uniform_(self.actions[0][0].weight)
+        # nn.init.xavier_uniform_(self.actions[1][0].weight)
         
         self.value = nn.Sequential(nn.Linear(256, 256),
                                    nn.Tanh(),

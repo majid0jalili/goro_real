@@ -6,6 +6,7 @@ import multiprocessing
 import torch
 import time
 
+
 from concurrent.futures import ProcessPoolExecutor
 from torch.multiprocessing import Process, set_start_method, Queue
 import asyncio
@@ -18,11 +19,11 @@ from pbes import PEBS
 from prefetcher import Prefetcher
 
 parser = argparse.ArgumentParser('parameters')
-parser.add_argument('--lr_rate', type=float, default=1e-3,
+parser.add_argument('--lr_rate', type=float, default=1e-5,
                     help='learning rate (default : 0.0001)')
-parser.add_argument('--batch_size', type=int, default=64,
+parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size(default : 32)')
-parser.add_argument('--gamma', type=float, default=0.98,
+parser.add_argument('--gamma', type=float, default=0.95,
                     help='gamma (default : 0.99)')
 parser.add_argument("--name", type=str, default='unknown')
 parser.add_argument("--mlmode", type=str, default='train')
@@ -39,7 +40,8 @@ num_cpu = 16
 num_pf_per_core = 4
 num_features_per_core = 7
 
-state_space = num_features_per_core*num_cpu
+# state_space = num_features_per_core*num_cpu
+state_space = 176
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -68,11 +70,17 @@ def summary():
 
 def train(agent):
     print("Function set_collector")
+    app = Applications(num_cpu)
+    app.run_perf_stat()
+    time.sleep(4)
+    
     pebs = PEBS(num_cpu)
     pf = Prefetcher(num_cpu, num_pf_per_core)
-    app = Applications(num_cpu)
+    
     total_reward = 0
-    state, insts, llc_misses = pebs.state()
+    n = 0
+    state, insts, llc_misses = pebs.state1()
+    
     next_state = []
     next_inst = []
 
@@ -84,7 +92,9 @@ def train(agent):
     itr = 0
     loss = 0
     elapsed = {}
-   
+    time.sleep(1)
+    
+    print("len(state)", len(state))
     while (True):
         itr += 1
         for i in range(num_cpu):
@@ -102,11 +112,11 @@ def train(agent):
         elapsed["pf_Set"]=(toc-tic)
         
         tic = time.time()
-        next_state, next_inst, llc_misses = pebs.state()
+        next_state, next_inst, llc_misses = pebs.state1()
         toc = time.time()
         elapsed["read_state"]=(toc-tic)
-        
-        
+
+        time.sleep(0.1)
         total_llc_misses = [sum(i) for i in zip(total_llc_misses, llc_misses )]  
         total_insts = [sum(i) for i in zip(total_insts, next_inst )]  
         

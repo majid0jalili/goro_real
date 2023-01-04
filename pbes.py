@@ -2,6 +2,7 @@ import random
 import os
 import subprocess
 import time
+import pandas as pd
 
 # sudo perf stat -a  -M DRAM_BW_Use -e  llc_misses.mem_read,L1-dcache-load-misses,l2_rqsts.miss,offcore_requests.all_data_rd,offcore_requests_buffer.sq_full,uops_executed.stall_cycles,instructions
 class PEBS():
@@ -117,6 +118,73 @@ class PEBS():
             LLC_miss.append(LLC_store_miss[i]+LLC_load_miss[i])
         return state_p, insts, LLC_miss
 
+    def state1(self):
+        try:
+            df = pd.read_csv('test.csv', skiprows=2, header=None)
+        except Exception as e:
+            print("Exception gotta wait for 1 sec")
+            time.sleep(1)
+            print("read again")
+            df = pd.read_csv('test.csv', skiprows=2, header=None)
+            
+        df_empty = pd.DataFrame() 
+        df_empty.to_csv('test.csv', index=False)
+
+        df.columns = ['A', 'CPUs', 'Values', 'D', 'Events', 'F', 'G', 'H', 'I']
+        df = df.drop(columns=['A', 'D', 'F', 'G', 'H', 'I'])
+
+        df1 = df.groupby(['CPUs', 'Events']).mean(numeric_only=True)
+
+        features = {}
+        try:
+            features = df1["Values"].to_dict()
+        except Exception as e:
+            print("Exception happned here", e)
+            print(df)
+            print("-----")
+            print(df1)
+            print("-----")
+
+        features_clean = {}
+        evensts = ["idq_uops_not_delivered.core", #A
+                   "uops_issued.any", #B
+                   "int_misc.recovery_cycles",  #C
+                   "uops_retired.retire_slots", #D
+                   "cpu_clk_unhalted.thread", #E
+                   "inst_retired.any",  #F
+                   "mem_load_retired.l3_miss",  #G
+                   "mem_load_retired.l2_miss", #H
+                   "mem_load_retired.l1_miss", #I
+                   "l1d_pend_miss.pending", #J
+                   "l1d_pend_miss.pending_cycles", #K
+                   "mem_load_retired.fb_hit"] #L
+
+        for cpu in range(0, self.num_cpu*2, 2):
+            for e in evensts:
+                thekey = ("CPU"+str(cpu), e)
+                if thekey in features:
+                    features_clean[thekey] = features[thekey]
+                else:
+                    features_clean[thekey] = 1
+                    
+       
+        features_list = []
+        insts = []
+
+        for f in features_clean:
+            cpu = f[0][3:]
+            if (f[1] != 'uops_retired.retire_slots'):
+                features_list.append(features_clean[f] /
+                                     features_clean[("CPU" + str(cpu),
+                                              "uops_retired.retire_slots")]
+                                     )
+            else:
+                insts.append(features_clean[f])
+    
+
+            
+        return features_list, insts, []
+    
     def stats(self):
         state_p = []
         stats = self.run_perf_stat()

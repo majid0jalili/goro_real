@@ -41,6 +41,11 @@ class Prefetcher():
         return acc
 
     def all_prefetchers_on(self):
-        for core in range(64):
-            self.prefetcher_set(core, [0])
+        last_setting = []
+        for core in range(self.num_cpu):
+            setting = []
+            for pf in range(self.num_pf_per_core):
+                setting.append(0)
+            last_setting.append(setting)
+        self.all_prefetcher_set(self.last_setting)
 

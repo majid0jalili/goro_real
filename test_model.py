@@ -10,9 +10,11 @@ num_cpu = 16
 num_pf_per_core = 4
 num_features_per_core = 7
 
-state_space = num_features_per_core*num_cpu
+# state_space = num_features_per_core*num_cpu
+state_space = 176
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
+
 
 total_reward = 0
 alpha = 0.2
@@ -53,7 +55,7 @@ def run_model(model):
     print("Model size ", count_parameters(model))
     tot_actions = [0] * num_cpu
     for i in range(100): 
-        state = torch.rand((1, state_space)).float().to(device)
+        state = torch.rand((20, state_space)).float().to(device)
         tic = time.time()
         action = agent.action_test(state)
         for a in action:
@@ -86,24 +88,24 @@ model.value[2].register_forward_hook(printnorm)
 
 model.actions[0][2].register_forward_hook(printnorm)
 model.actions[1][2].register_forward_hook(printnorm)
-model.actions[2][2].register_forward_hook(printnorm)
-model.actions[3][2].register_forward_hook(printnorm)
-model.actions[4][2].register_forward_hook(printnorm)
-model.actions[5][2].register_forward_hook(printnorm)
-model.actions[6][2].register_forward_hook(printnorm)
+# model.actions[2][2].register_forward_hook(printnorm)
+# model.actions[3][2].register_forward_hook(printnorm)
+# model.actions[4][2].register_forward_hook(printnorm)
+# model.actions[5][2].register_forward_hook(printnorm)
+# model.actions[6][2].register_forward_hook(printnorm)
 
 state = torch.rand((1, state_space)).float().to(device)
 action = model(state.clone().detach())  
 
-print("------action-----------")
-print(action)
+# print("------action-----------")
+# print(action)
 # print("----")
 
 # print(model.linear_1.__dict__)
 # print("-----------------")
-# print(model.actions[0][0].__dict__)
-# print("-----------------")
 # print(model.actions[0][2].__dict__)
+print("-----------------")
+# print(model.actions[1][2].__dict__)
 # print("-----------------")
 # print(model.actions[0][3].__dict__)
 # print("-----------------")

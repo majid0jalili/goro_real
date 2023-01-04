@@ -4,30 +4,33 @@ import subprocess
 import time
 import signal
 from subprocess import Popen
+import pandas as pd
+import psutil
 
 spec_root = "/home/cc/spec/benchspec/CPU/"
 spec_path = {
     "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
     "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
-    "sleep": "./",
-    "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
+    # "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
+    # "sleep": "./",
+    
     # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
     # "pr": "gapbs/",
     # "sssp": "gapbs/",
-    # "bc": "gapbs/"
+    "bc": "gapbs/"
 }
 
 spec_cmds = {
     "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
-    "sleep": "sleep 5m",
     "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
-    "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
+    # "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
+    # "sleep": "sleep 10",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
-    # "pr": "/home/cc/gapbs/pr -u 23 -n 20",
+    # "pr": "/home/cc/gapbs/pr -u 20 -n 10",
     # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    # "bc": "/home/cc/gapbs/bc -u 23 -n 20",
+    "bc": "/home/cc/gapbs/bc -u 23 -n 20",
 }
 
 
@@ -48,7 +51,21 @@ class Applications():
 
         print("App map is ", self.core_PID)
 
-        
+    def app_rest(self):
+        self.blocked = 0
+        self.core_PID = {}
+        self.start_time = {}
+        self.end_time = {}
+        self.bw_PID = -2
+        print("---------------")
+
+        for i in range(self.num_app):
+            self.core_PID[2*i] = -2
+            self.start_time[2*i] = -2
+            self.end_time[2*i] = -2
+
+        print("App map is ", self.core_PID)
+    
     def kill_bw(self):
         cmd_bg = "sudo pkill -f pcm-memory*"
         print("run_bw killed the last run the new", cmd_bg, self.bw_PID)
@@ -59,6 +76,16 @@ class Applications():
         output, errors = process.communicate()
         print(output, errors)
     
+    def kill_perf_stat(self):
+        cmd_bg = "sudo pkill -f perf*"
+        print("kill_perf_stat killed the last run the new", cmd_bg, self.bw_PID)
+        process = subprocess.Popen(cmd_bg,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               shell=True)
+        output, errors = process.communicate()
+        print(output, errors)
+        
     def run_bw(self, output):
         self.kill_bw()
         cmd_path = "./"
@@ -69,7 +96,19 @@ class Applications():
                                    shell=True,
                                    cwd=cmd_path
                                    )
-        print("-**--------PID", process.pid, self.bw_PID)
+        print("-**----run_bw----PID", process.pid, self.bw_PID)
+        
+    def run_perf_stat(self):
+        self.kill_perf_stat()
+        cmd_path = "./"
+        cmd_bg = "sudo perf stat -x, -C 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 -o test.csv -A -I 100 -e idq_uops_not_delivered.core,uops_issued.any,int_misc.recovery_cycles,uops_retired.retire_slots,cpu_clk_unhalted.thread,mem_load_retired.l3_miss,inst_retired.any,mem_load_retired.l2_miss,mem_load_retired.l1_miss,l1d_pend_miss.pending,l1d_pend_miss.pending_cycles,mem_load_retired.fb_hit --append "
+        process = subprocess.Popen(cmd_bg,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
+                                   shell=True,
+                                   cwd=cmd_path
+                                   )
+        print("-**---run_perf_stat-----PID", process.pid)
         
     def print_apps(self):
         print("Apps running")
@@ -92,8 +131,19 @@ class Applications():
 
     def check_pid(self, pid):
         """ Check For the existence of a unix pid. """
+        if(pid < 0):
+            return False
+        try:
+            p = psutil.Process(pid)
+        except psutil.NoSuchProcess:
+            return False
+            
+        if p.status() == psutil.STATUS_ZOMBIE:
+            time.sleep(0.5)
+            return False
         try:
             os.kill(pid, 0)
+            # os.wait()
         except OSError:
             return False
         else:
@@ -103,7 +153,6 @@ class Applications():
         empty_core = 0
         for core in self.core_PID:
             if (self.check_pid(self.core_PID[core]) == False):
-                # print("PID ", self.core_PID[core], " is not running")
                 empty_core += 1
                 self.core_PID[core] = -2
                 if self.end_time[core] == -2 :
@@ -215,7 +264,8 @@ class Applications():
                 if errs != None:
                     print("errs ", errs.decode())
 
-app = Applications(16)
 
-for i in range(16):
-    app.run_app()
+# A = Applications(4)
+# A.run_perf_stat()
+# time.sleep(10)
+# A.kill_perf_stat()
