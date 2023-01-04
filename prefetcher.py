@@ -19,14 +19,14 @@ class Prefetcher():
 
     def prefetcher_set(self, core, mask):
         int_mask = int("".join(str(i) for i in mask), 2)
-        print("int_mask", int_mask)
+        # print("int_mask", int_mask)
         cmd = "sudo wrmsr 0x1a4 -p "+str(core)+" "+str(int_mask)
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    shell=True)
         out, err = process.communicate()
-        print(out)
+        # print(out)
 
     def all_prefetcher_set_forced(self):
         for core in range(self.num_cpu):
