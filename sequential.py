@@ -19,7 +19,7 @@ from pbes import PEBS
 from prefetcher import Prefetcher
 
 parser = argparse.ArgumentParser('parameters')
-parser.add_argument('--lr_rate', type=float, default=1e-5,
+parser.add_argument('--lr_rate', type=float, default=1e-3,
                     help='learning rate (default : 0.0001)')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size(default : 32)')
@@ -86,7 +86,7 @@ def train(agent):
 
     avg_reward = 0
     total_llc_misses = llc_misses
-    total_insts = insts
+    total_insts = [0]*len(insts)
     avg_inst = insts
     
     itr = 0
@@ -96,7 +96,7 @@ def train(agent):
     
     print("len(state)", len(state))
     while (True):
-        itr += 1
+        
         for i in range(num_cpu):
             app.run_app()
         
@@ -104,21 +104,22 @@ def train(agent):
         tic = time.time()
         action = agent.action(state, False)
         toc = time.time()
-        elapsed["action"]=(toc-tic)
+        elapsed["action"]=round(toc-tic, 2)
         
         tic = time.time()
         action = pf.all_prefetcher_set(action)
         toc = time.time()
-        elapsed["pf_Set"]=(toc-tic)
+        elapsed["pf_Set"]=round(toc-tic, 2)
         
         tic = time.time()
         next_state, next_inst, llc_misses = pebs.state1()
         toc = time.time()
-        elapsed["read_state"]=(toc-tic)
+        elapsed["read_state"]=round(toc-tic, 2)
 
         time.sleep(0.1)
         total_llc_misses = [sum(i) for i in zip(total_llc_misses, llc_misses )]  
         total_insts = [sum(i) for i in zip(total_insts, next_inst )]  
+        itr += 1
         
         reward = 0
         for inst in range(len(insts)):
@@ -133,33 +134,38 @@ def train(agent):
                  
 
         r_arr = [reward]
-        total_reward += reward
+        avg_reward += reward
+        
+        with open(r'./reward.txt', 'a') as fp:
+            fp.write('reward ' + str(round(reward, 3)) )
+                     # ' loss '+str(loss)+" Misses ")
+            # fp.write(" ".join(str(item) for item in total_llc_misses))
+            fp.write(", Instructions ")
+            fp.write(" ".join(str(item) for item in next_inst))
+            fp.write(", Avg ")
+            fp.write(" ".join(str(item) for item in avg_inst))
+            fp.write("\n")
+            fp.close()
         
         
-        if (itr == 100):
+                
+        if (itr == 10):
             print(elapsed)
-            avg_reward = total_reward / 100
+            avg_reward /= 10
+            for inst in range(len(insts)):
+                avg_inst[inst] = total_insts[inst]/itr
             
             with open(r'./avg_reward.txt', 'a') as fp:
                 fp.write('avg_reward ' + str(round(avg_reward, 3)) +
                          ' loss '+str(loss)+" Misses ")
-                fp.write(" ".join(str(item) for item in total_llc_misses))
-                fp.write(", Instructions ")
-                fp.write(" ".join(str(item) for item in total_insts))
                 fp.write("\n")
+                fp.close()
             
-            for inst in range(len(insts)):
-                avg_inst[inst] = total_insts[inst]/100
-            
-            itr = 0
-            total_reward = 0
-            fp.close()
-            total_llc_misses = llc_misses
-            total_insts = next_inst
-            agent.memory.write_to_csv("mem.xlsx")
+            total_insts = [0]*len(total_insts)
+            # agent.memory.write_to_csv("mem.xlsx")
             agent.save_model("model")
             agent.memory.beta = beta
-
+            itr = 0
    
         agent.memory.write_buffer(state, next_state, action, r_arr)
 
@@ -187,7 +193,7 @@ def main():
     agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
       
-    # agent.load_model("./models/model", device)
+    agent.load_model("./models/model", device)
     
     train(agent)
 if __name__ == '__main__':
