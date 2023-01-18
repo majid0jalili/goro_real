@@ -52,6 +52,8 @@ class BQN(nn.Module):
         acc = []
         acc_per_core = []
         out = self.q(torch.tensor(x, dtype=torch.float).to(self.device))
+        all_acc = []
+        
         toss = random()
         if (toss < 0.05 and not inference):
             for c in range(self.num_cpu):
@@ -66,7 +68,7 @@ class BQN(nn.Module):
                 acc.append(acc_per_core)
                 acc_per_core = []
         else:
-            all_acc = []
+            
             for tor in out:
                 all_acc.append(torch.argmax(tor, dim=1)[[0]].item())
             pf_idx = 0

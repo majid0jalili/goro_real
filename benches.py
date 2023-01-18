@@ -18,19 +18,19 @@ spec_path = {
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
     # "pr": "gapbs/",
     # "sssp": "gapbs/",
-    "bc": "gapbs/"
+    # "bc": "gapbs/"
 }
 
 spec_cmds = {
     "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
     "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
     # "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
-    # "sleep": "sleep 10",
+    # "sleep": "sleep 10m",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
     # "pr": "/home/cc/gapbs/pr -u 20 -n 10",
     # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    "bc": "/home/cc/gapbs/bc -u 23 -n 20",
+    # "bc": "/home/cc/gapbs/bc -u 23 -n 20",
 }
 
 
@@ -101,7 +101,7 @@ class Applications():
     def run_perf_stat(self):
         self.kill_perf_stat()
         cmd_path = "./"
-        cmd_bg = "sudo perf stat -x, -C 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 -o test.csv -A -I 100 -e idq_uops_not_delivered.core,uops_issued.any,int_misc.recovery_cycles,uops_retired.retire_slots,cpu_clk_unhalted.thread,mem_load_retired.l3_miss,inst_retired.any,mem_load_retired.l2_miss,mem_load_retired.l1_miss,l1d_pend_miss.pending,l1d_pend_miss.pending_cycles,mem_load_retired.fb_hit --append "
+        cmd_bg = "sudo perf stat -x, -C 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 -o test.csv -A -I 100 -e idq_uops_not_delivered.core,uops_issued.any,int_misc.recovery_cycles,uops_retired.retire_slots,cpu_clk_unhalted.thread,mem_load_retired.l3_miss,inst_retired.any,mem_load_retired.l2_miss,mem_load_retired.l1_miss,l1d_pend_miss.pending,l1d_pend_miss.pending_cycles,mem_load_retired.fb_hit,uncore_imc/cas_count_read/,uncore_imc/cas_count_write/,cha/event=0x36\,umask=0x21\,config=0x40433/,cha/event=0x35\,umask=0x21\,config=0x40433/,cha_0/event=0x0/  --append "
         process = subprocess.Popen(cmd_bg,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL,

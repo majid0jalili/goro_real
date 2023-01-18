@@ -40,7 +40,7 @@ num_pf_per_core = 4
 num_features_per_core = 7
 
 # state_space = num_features_per_core*num_cpu
-state_space = 176
+state_space = 256
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -58,11 +58,11 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
 
-def make_action(run_type, state):
+def make_action(run_type, state, num_app):
     action_start = time.time()
     actions = []
     
-    if(run_type == "base"):
+    if(run_type == "base" or num_app < (0.75*num_cpu)):
         action = []
         acc_per_core = []
         for c in range(num_cpu):
@@ -104,7 +104,9 @@ def measure_pebs(pebs):
 
 
 def run_app(mix_num):
-    run_mode = ["base", "goro", "random"]
+    # run_mode = ["base", "goro", "random"]
+    run_mode = ["goro", "base", "random"]
+    
     
     app = Applications(num_cpu)
     app.run_perf_stat()
@@ -141,8 +143,9 @@ def run_app(mix_num):
         actions = []
         itr = 0
         app.run_bw("app_"+str(mix_num)+str("_bw_"+str(r_mode)))
-        while(app.num_running_apps() != 0):
-            action, make_action_length = make_action(r_mode, state)
+        num_app = app.num_running_apps()
+        while(num_app != 0):
+            action, make_action_length = make_action(r_mode, state, num_app)
             take_action_length = take_action(action, pf)
             state, insts, pebs_length = measure_pebs(pebs)
             
@@ -154,6 +157,7 @@ def run_app(mix_num):
                 print("{} take_action:{} make_action:{} pebs_length:{}".format(r_mode, take_action_length, make_action_length, pebs_length)) 
                 print(app.core_PID)
             itr += 1
+            num_app = app.num_running_apps()
             
         duration = app.duration()
         app.kill_bw()
@@ -179,13 +183,13 @@ def run_app(mix_num):
    
 def load_model():
     print("Function load_model")
-    agent.load_model("./models/model", device)
+    agent.load_model("./models/model.49.12", device)
 
 
 def main():
     load_model()
 
-    for i in range(64):
+    for i in range(0, 12, 1):
         run_app(i)
 
     return

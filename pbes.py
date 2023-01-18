@@ -120,21 +120,27 @@ class PEBS():
 
     def state1(self):
         try:
-            df = pd.read_csv('test.csv', skiprows=2, header=None)
+            df = pd.read_csv('test.csv', skiprows=2, header=None, on_bad_lines='skip')
         except Exception as e:
             print("Exception gotta wait for 1 sec")
             time.sleep(1)
             print("read again")
-            df = pd.read_csv('test.csv', skiprows=2, header=None)
+            df = pd.read_csv('test.csv', skiprows=2, header=None, on_bad_lines='skip')
             
         df_empty = pd.DataFrame() 
         df_empty.to_csv('test.csv', index=False)
 
-        df.columns = ['A', 'CPUs', 'Values', 'D', 'Events', 'F', 'G', 'H', 'I']
-        df = df.drop(columns=['A', 'D', 'F', 'G', 'H', 'I'])
-
+        
+        if(df.shape[1] == 9):
+            df.columns = ['A', 'CPUs', 'Values', 'D', 'Events', 'F', 'G', 'H', 'I']
+            df = df.drop(columns=['A', 'D', 'F', 'G', 'H', 'I'])
+        elif(df.shape[1] == 11):
+            df.columns = ['A', 'CPUs', 'Values', 'D', 'Events', 'F', 'G', 'H', 'I', "J", "K"]
+            df = df.drop(columns=['A', 'D', 'F', 'G', 'H', 'I', "J", "K"])
+        
+        df.Values =pd.to_numeric(df.Values, errors ='coerce').fillna(0).astype('int')
         df1 = df.groupby(['CPUs', 'Events']).mean(numeric_only=True)
-
+        # df1.to_csv("groupby.csv")
         features = {}
         try:
             features = df1["Values"].to_dict()
@@ -157,7 +163,14 @@ class PEBS():
                    "mem_load_retired.l1_miss", #I
                    "l1d_pend_miss.pending", #J
                    "l1d_pend_miss.pending_cycles", #K
-                   "mem_load_retired.fb_hit"] #L
+                   "mem_load_retired.fb_hit",#L
+                   "uncore_imc/cas_count_read/",
+                   "uncore_imc/cas_count_write/",
+                   "cha/event=0x36",
+                   "cha/event=0x35",
+                   "cha_0/event=0x0/"
+                   
+                   ] 
 
         for cpu in range(0, self.num_cpu*2, 2):
             for e in evensts:
@@ -182,7 +195,8 @@ class PEBS():
                 insts.append(features_clean[f])
     
 
-            
+        # print(features_list)
+        # print("SIZE---", len(features_list))
         return features_list, insts, []
     
     def stats(self):

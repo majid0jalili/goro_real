@@ -19,11 +19,11 @@ from pbes import PEBS
 from prefetcher import Prefetcher
 
 parser = argparse.ArgumentParser('parameters')
-parser.add_argument('--lr_rate', type=float, default=1e-3,
+parser.add_argument('--lr_rate', type=float, default=1e-6,
                     help='learning rate (default : 0.0001)')
-parser.add_argument('--batch_size', type=int, default=32,
+parser.add_argument('--batch_size', type=int, default=64,
                     help='batch size(default : 32)')
-parser.add_argument('--gamma', type=float, default=0.95,
+parser.add_argument('--gamma', type=float, default=0.99,
                     help='gamma (default : 0.99)')
 parser.add_argument("--name", type=str, default='unknown')
 parser.add_argument("--mlmode", type=str, default='train')
@@ -41,7 +41,7 @@ num_pf_per_core = 4
 num_features_per_core = 7
 
 # state_space = num_features_per_core*num_cpu
-state_space = 176
+state_space = 256
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -67,7 +67,22 @@ def summary():
     print("mlmode", mlmode)
     print("----------------")
 
-
+def run_model(agent):
+        
+    tot_actions = [0] * num_cpu
+    for i in range(100):  
+        state = torch.rand((20, state_space)).float().to(device)
+        action = agent.action_test(state)
+        for a in action:
+            tot_actions[a]+=1
+    tot = 0
+    for a in tot_actions:
+        tot += a
+    for a in range(len(tot_actions)):
+        tot_actions[a] = tot_actions[a]/(tot*1.0)
+        
+    return tot_actions
+        
 def train(agent):
     print("Function set_collector")
     app = Applications(num_cpu)
@@ -90,13 +105,13 @@ def train(agent):
     avg_inst = insts
     
     itr = 0
+    examine = 0
     loss = 0
     elapsed = {}
     time.sleep(1)
     
     print("len(state)", len(state))
     while (True):
-        
         for i in range(num_cpu):
             app.run_app()
         
@@ -116,10 +131,11 @@ def train(agent):
         toc = time.time()
         elapsed["read_state"]=round(toc-tic, 2)
 
-        time.sleep(0.1)
+        # time.sleep(0.1)
         total_llc_misses = [sum(i) for i in zip(total_llc_misses, llc_misses )]  
         total_insts = [sum(i) for i in zip(total_insts, next_inst )]  
         itr += 1
+        examine += 1
         
         reward = 0
         for inst in range(len(insts)):
@@ -129,7 +145,12 @@ def train(agent):
                     inst_ratio = 4
                 if(inst_ratio < -4):
                     inst_ratio = -4
-                    
+                
+                # if(inst < (num_cpu/2)):
+                    # if(inst_ratio < 0):
+                        # reward -= 1
+                
+                        
                 reward += 1.0*inst_ratio
                  
 
@@ -149,33 +170,39 @@ def train(agent):
         
         
                 
-        if (itr == 10):
-            print(elapsed)
-            avg_reward /= 10
+        if (itr == 1):
+            
+            avg_reward /= 1
             for inst in range(len(insts)):
                 avg_inst[inst] = total_insts[inst]/itr
-            
-            with open(r'./avg_reward.txt', 'a') as fp:
-                fp.write('avg_reward ' + str(round(avg_reward, 3)) +
-                         ' loss '+str(loss)+" Misses ")
-                fp.write("\n")
-                fp.close()
-            
+
             total_insts = [0]*len(total_insts)
-            # agent.memory.write_to_csv("mem.xlsx")
+            itr = 0
+            avg_reward = 0
+        
+        if examine == 1000:
+            print(elapsed)
+            examine = 0
             agent.save_model("model")
             agent.memory.beta = beta
-            itr = 0
-   
+            agent.memory.write_to_csv("mem.xlsx")
+            dist_actions = run_model(agent)
+            print("dist_actions", dist_actions)
+            if(dist_actions[0]+dist_actions[1] > 0.8):
+                print("Very close to Intel")
+                break
+            
+            
         agent.memory.write_buffer(state, next_state, action, r_arr)
 
-        if (agent.memory.size() > 8*batch_size):
+        if (agent.memory.size() > 2*batch_size):
             tic = time.time()
             loss = agent.train_model(batch_size, gamma)
             agent.memory.beta = beta + (itr/100)*(1-beta)
             toc = time.time()
             elapsed["train"]=(toc-tic)
-
+        else:
+            time.sleep(0.4)
        
    
         state = next_state
@@ -193,7 +220,7 @@ def main():
     agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
       
-    agent.load_model("./models/model", device)
+    # agent.load_model("./models/model", device)
     
     train(agent)
 if __name__ == '__main__':

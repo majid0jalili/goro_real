@@ -11,7 +11,7 @@ num_pf_per_core = 4
 num_features_per_core = 7
 
 # state_space = num_features_per_core*num_cpu
-state_space = 176
+state_space = 256
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -27,7 +27,7 @@ agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
 
 
-model = agent.load_model("./models/model", device)
+model = agent.load_model("./models/model.49.12", device)
 # model = agent.q
 model = model.to(device)
 print("Done")
@@ -54,7 +54,7 @@ def run_model(model):
     zeros = 0
     print("Model size ", count_parameters(model))
     tot_actions = [0] * num_cpu
-    for i in range(100): 
+    for i in range(1000): 
         state = torch.rand((20, state_space)).float().to(device)
         tic = time.time()
         action = agent.action_test(state)
@@ -63,7 +63,11 @@ def run_model(model):
         toc = time.time()
 
         duration += (toc-tic)
-       
+    tot = 0
+    for t in tot_actions:
+        tot+=t
+    for i in range(len(tot_actions)):
+        tot_actions[i] /= tot
     print("Duration", duration/100)
     print(tot_actions)
     
@@ -83,7 +87,7 @@ def printnorm(self, input, output):
 
 run_model(model)
 
-model.linear_1.register_forward_hook(printnorm)
+model.linear_2.register_forward_hook(printnorm)
 model.value[2].register_forward_hook(printnorm)
 
 model.actions[0][2].register_forward_hook(printnorm)

@@ -9,7 +9,7 @@ class QNetwork(nn.Module):
         super(QNetwork, self).__init__()
  
         self.linear_1 = nn.Linear(state_space, 256)
-        # self.linear_2 = nn.Linear(128, 128)
+        self.linear_2 = nn.Linear(256, 256)
         # self.linear_3 = nn.Linear(1024, 1024) 
         # self.linear_4 = nn.Linear(1024, 1024) 
         # self.linear_5 = nn.Linear(1024, 1024) 
@@ -20,8 +20,8 @@ class QNetwork(nn.Module):
         # nn.init.xavier_uniform(self.linear_1.bias)
         
         self.actions = [nn.Sequential(nn.Linear(256, 256),
-                                      nn.Tanh(),
-                                      # nn.Linear(64, 64),
+                                      nn.ReLU(),
+                                      # nn.Linear(512, 256),
                                       # nn.ReLU(),
                                       # nn.Linear(64, 64),
                                       # nn.ReLU(),
@@ -37,7 +37,7 @@ class QNetwork(nn.Module):
         # nn.init.xavier_uniform_(self.actions[1][0].weight)
         
         self.value = nn.Sequential(nn.Linear(256, 256),
-                                   nn.Tanh(),
+                                   nn.ReLU(),
                                    # nn.Linear(256, 256),
                                    # nn.ReLU(),
                                    # nn.Linear(256, 256),
@@ -45,7 +45,8 @@ class QNetwork(nn.Module):
                                    nn.Linear(256, 1)
                                    )
     def forward(self, x):
-        x = torch.tanh(self.linear_1(x))
+        x = torch.relu(self.linear_1(x))
+        x = torch.relu(self.linear_2(x))
         encoded = x 
         actions = [x(encoded) for x in self.actions]
         value = self.value(encoded)
