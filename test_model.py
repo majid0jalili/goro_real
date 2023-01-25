@@ -6,14 +6,16 @@ import torch.nn as nn
 from utils import ReplayBuffer
 from agent import BQN
 
-num_cpu = 16
-num_pf_per_core = 4
+num_cpu = 64
+num_pf_per_core = 1
 num_features_per_core = 7
 
 # state_space = num_features_per_core*num_cpu
-state_space = 256
+state_space = num_cpu*16
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
+
+print("STARTED----------------")
 
 
 total_reward = 0
@@ -27,7 +29,8 @@ agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
 
 
-model = agent.load_model("./models/model.49.12", device)
+print("loading the model")
+model = agent.load_model("./models/model", device)
 # model = agent.q
 model = model.to(device)
 print("Done")
@@ -72,7 +75,7 @@ def run_model(model):
     print(tot_actions)
     
 
-activation = {}
+activation = {} 
 
 
 # for name, layer in model.named_modules():
@@ -87,19 +90,19 @@ def printnorm(self, input, output):
 
 run_model(model)
 
-model.linear_2.register_forward_hook(printnorm)
-model.value[2].register_forward_hook(printnorm)
+# model.linear_2.register_forward_hook(printnorm)
+# model.value[2].register_forward_hook(printnorm)
 
-model.actions[0][2].register_forward_hook(printnorm)
-model.actions[1][2].register_forward_hook(printnorm)
+# model.actions[0][2].register_forward_hook(printnorm)
+# model.actions[1][2].register_forward_hook(printnorm)
 # model.actions[2][2].register_forward_hook(printnorm)
 # model.actions[3][2].register_forward_hook(printnorm)
 # model.actions[4][2].register_forward_hook(printnorm)
 # model.actions[5][2].register_forward_hook(printnorm)
 # model.actions[6][2].register_forward_hook(printnorm)
 
-state = torch.rand((1, state_space)).float().to(device)
-action = model(state.clone().detach())  
+# state = torch.rand((1, state_space)).float().to(device)
+# action = model(state.clone().detach())  
 
 # print("------action-----------")
 # print(action)
@@ -108,7 +111,7 @@ action = model(state.clone().detach())
 # print(model.linear_1.__dict__)
 # print("-----------------")
 # print(model.actions[0][2].__dict__)
-print("-----------------")
+# print("-----------------")
 # print(model.actions[1][2].__dict__)
 # print("-----------------")
 # print(model.actions[0][3].__dict__)

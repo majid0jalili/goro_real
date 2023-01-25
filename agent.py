@@ -46,7 +46,7 @@ class BQN(nn.Module):
         self.action_count = 0
         # print("Loading the model")
         # self.load_model("./models/model", self.device)
-        self.save_model("model_raw")
+        # self.save_model("model_raw")
 
     def action(self, x, inference):
         acc = []

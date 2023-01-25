@@ -119,8 +119,11 @@ class PEBS():
         return state_p, insts, LLC_miss
 
     def state1(self):
+        # print("Reading...")
         try:
             df = pd.read_csv('test.csv', skiprows=2, header=None, on_bad_lines='skip')
+            # print(df)
+            # print(df.shape)
         except Exception as e:
             print("Exception gotta wait for 1 sec")
             time.sleep(1)
@@ -151,24 +154,27 @@ class PEBS():
             print(df1)
             print("-----")
 
+# ,,,,,,  
+
         features_clean = {}
-        evensts = ["idq_uops_not_delivered.core", #A
-                   "uops_issued.any", #B
-                   "int_misc.recovery_cycles",  #C
-                   "uops_retired.retire_slots", #D
-                   "cpu_clk_unhalted.thread", #E
-                   "inst_retired.any",  #F
-                   "mem_load_retired.l3_miss",  #G
-                   "mem_load_retired.l2_miss", #H
-                   "mem_load_retired.l1_miss", #I
-                   "l1d_pend_miss.pending", #J
-                   "l1d_pend_miss.pending_cycles", #K
-                   "mem_load_retired.fb_hit",#L
-                   "uncore_imc/cas_count_read/",
-                   "uncore_imc/cas_count_write/",
-                   "cha/event=0x36",
-                   "cha/event=0x35",
-                   "cha_0/event=0x0/"
+        evensts = ["branches", #A
+                   "cache-references", #B
+                   "instructions",  #C
+                   "L1-dcache-load-misses", #D
+                   "L1-dcache-loads", #E
+                   "L1-dcache-prefetches",  #F
+                   "L1-icache-load-misses",  #G
+                   "dTLB-load-misses", #H
+                   "dTLB-loads", #I
+                   "iTLB-loads ", #J
+                   
+                   "msr/aperf/", #K
+                   "msr/irperf/",#L
+                   "msr/mperf/",
+                   "msr/tsc/",
+                   "branch-instructions",
+                   "branch-misses",
+                   "branch-loads"
                    
                    ] 
 
@@ -186,10 +192,10 @@ class PEBS():
 
         for f in features_clean:
             cpu = f[0][3:]
-            if (f[1] != 'uops_retired.retire_slots'):
+            if (f[1] != 'instructions'):
                 features_list.append(features_clean[f] /
                                      features_clean[("CPU" + str(cpu),
-                                              "uops_retired.retire_slots")]
+                                              "instructions")]
                                      )
             else:
                 insts.append(features_clean[f])
@@ -219,3 +225,7 @@ class PEBS():
                 print("CPU ", cpu, " Event ", e,
                       " Value ", stats[("CPU"+str(cpu), e)])
                 break
+
+
+# P = PEBS(4)
+# P.state1()

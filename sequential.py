@@ -36,12 +36,12 @@ gamma = args.gamma
 run_name = args.name
 mlmode = args.mlmode
 
-num_cpu = 16
-num_pf_per_core = 4
+num_cpu = 64
+num_pf_per_core = 1
 num_features_per_core = 7
 
 # state_space = num_features_per_core*num_cpu
-state_space = 256
+state_space = num_cpu*16
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -110,6 +110,8 @@ def train(agent):
     elapsed = {}
     time.sleep(1)
     
+    
+    print("Start--------------------------------------")
     print("len(state)", len(state))
     while (True):
         for i in range(num_cpu):
@@ -158,6 +160,7 @@ def train(agent):
         avg_reward += reward
         
         with open(r'./reward.txt', 'a') as fp:
+            fp.write("examine "+ str(examine)+" ")
             fp.write('reward ' + str(round(reward, 3)) )
                      # ' loss '+str(loss)+" Misses ")
             # fp.write(" ".join(str(item) for item in total_llc_misses))
@@ -165,6 +168,7 @@ def train(agent):
             fp.write(" ".join(str(item) for item in next_inst))
             fp.write(", Avg ")
             fp.write(" ".join(str(item) for item in avg_inst))
+            
             fp.write("\n")
             fp.close()
         
@@ -180,7 +184,7 @@ def train(agent):
             itr = 0
             avg_reward = 0
         
-        if examine == 1000:
+        if examine == 100:
             print(elapsed)
             examine = 0
             agent.save_model("model")
@@ -188,7 +192,8 @@ def train(agent):
             agent.memory.write_to_csv("mem.xlsx")
             dist_actions = run_model(agent)
             print("dist_actions", dist_actions)
-            if(dist_actions[0]+dist_actions[1] > 0.8):
+            # if(dist_actions[0]+dist_actions[1] > 0.8):
+            if(dist_actions[0] > 0.8):
                 print("Very close to Intel")
                 break
             

@@ -44,6 +44,7 @@ class QNetwork(nn.Module):
                                    # nn.ReLU(),
                                    nn.Linear(256, 1)
                                    )
+        print("self.linear_1", self.linear_1)       
     def forward(self, x):
         x = torch.relu(self.linear_1(x))
         x = torch.relu(self.linear_2(x))

@@ -35,15 +35,14 @@ gamma = args.gamma
 run_name = args.name
 mlmode = args.mlmode
 
-num_cpu = 16
-num_pf_per_core = 4
+num_cpu = 64
+num_pf_per_core = 1
 num_features_per_core = 7
 
 # state_space = num_features_per_core*num_cpu
-state_space = 256
+state_space = num_cpu*16
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
-
 
 total_reward = 0
 
@@ -183,7 +182,7 @@ def run_app(mix_num):
    
 def load_model():
     print("Function load_model")
-    agent.load_model("./models/model.49.12", device)
+    agent.load_model("./models/model", device)
 
 
 def main():

@@ -16,17 +16,21 @@ class Prefetcher():
                 setting.append(0)
             self.last_setting.append(setting)
         self.all_prefetcher_set_forced()
+        print("self.last_setting", self.last_setting)
 
     def prefetcher_set(self, core, mask):
         int_mask = int("".join(str(i) for i in mask), 2)
-        # print("int_mask", int_mask)
-        cmd = "sudo wrmsr 0x1a4 -p "+str(core)+" "+str(int_mask)
+
+        if(int_mask == 0):
+            cmd = "sudo wrmsr 0xc0011022 -p "+str(core)+" 0xc000000401500000"
+        else:
+            cmd = "sudo wrmsr 0xc0011022 -p "+str(core)+" 0xc00000040150A000"
         process = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    shell=True)
         out, err = process.communicate()
-        # print(out)
+
 
     def all_prefetcher_set_forced(self):
         for core in range(self.num_cpu):
@@ -37,7 +41,7 @@ class Prefetcher():
     def all_prefetcher_set(self, mask):
         acc = []
         for core in range(self.num_cpu):
-            if collections.Counter(mask[core]) != collections.Counter(self.last_setting[core]):
+            if mask[0] != self.last_setting[core]:
                 self.prefetcher_set(2*core, mask[core])
             for m in mask[core]:
                 acc.append(m)
@@ -51,5 +55,16 @@ class Prefetcher():
             for pf in range(self.num_pf_per_core):
                 setting.append(0)
             last_setting.append(setting)
-        self.all_prefetcher_set(self.last_setting)
+        self.all_prefetcher_set(last_setting)
+        
+    def all_prefetchers_off(self):
+        last_setting = []
+        for core in range(self.num_cpu):
+            setting = []
+            for pf in range(self.num_pf_per_core):
+                setting.append(1) 
+            
+            last_setting.append(setting)
+        self.all_prefetcher_set(last_setting)
+
 
