@@ -128,7 +128,7 @@ def run_app(mix_num):
         paths.append(cmd_path)
     
     
-    app_name = "app_"+str(mix_num)+".xlsx"
+    app_name = "app_NoNoise_"+str(mix_num)+".xlsx"
     df_cmds = pd.DataFrame(cmds)
     with pd.ExcelWriter(app_name) as writer:
         df_cmds.to_excel(writer, sheet_name="apps", index=False)
@@ -143,6 +143,7 @@ def run_app(mix_num):
         itr = 0
         app.run_bw("app_"+str(mix_num)+str("_bw_"+str(r_mode)))
         num_app = app.num_running_apps()
+        # app.add_noise()
         while(num_app != 0):
             action, make_action_length = make_action(r_mode, state, num_app)
             take_action_length = take_action(action, pf)
@@ -188,7 +189,7 @@ def load_model():
 def main():
     load_model()
 
-    for i in range(0, 12, 1):
+    for i in range(50, 75, 1):
         run_app(i)
 
     return

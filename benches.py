@@ -16,9 +16,10 @@ spec_path = {
     
     # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
-    # "pr": "gapbs/",
+    "pr": "gapbs/",
     # "sssp": "gapbs/",
-    "bc": "gapbs/"
+    "bc": "gapbs/",
+    # "stream": "STREAM/"
 }
 
 spec_cmds = {
@@ -28,9 +29,10 @@ spec_cmds = {
     # "sleep": "sleep 10m",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
-    # "pr": "/home/cc/gapbs/pr -u 20 -n 10",
+    "pr": "/home/cc/gapbs/pr -u 21 -n 100",
     # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    "bc": "/home/cc/gapbs/bc -u 23 -n 20",
+    "bc": "/home/cc/gapbs/bc -u 21 -n 100",
+    # "stream": "/home/cc/test/STREAM/stream"
 }
 
 
@@ -66,8 +68,19 @@ class Applications():
 
         print("App map is ", self.core_PID)
     
+    def add_noise(self):
+        cmd_bg = "taskset -c 1-128:2 /home/cc/test/STREAM/stream"
+        cmd_path = "./"
+        process = subprocess.Popen(cmd_bg,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
+                                   shell=True,
+                                   cwd=cmd_path
+                                   )
+        print("Noise added ", process.pid)
+    
     def kill_bw(self):
-        cmd_bg = "sudo pkill -f pcm-memory*"
+        cmd_bg = "sudo pkill -f AMDuProfPcm*"
         print("run_bw killed the last run the new", cmd_bg, self.bw_PID)
         process = subprocess.Popen(cmd_bg,
                                stdout=subprocess.PIPE,
@@ -89,7 +102,8 @@ class Applications():
     def run_bw(self, output):
         self.kill_bw()
         cmd_path = "./"
-        cmd_bg = "sudo /home/cc/test/pcm/build/bin/pcm-memory -csv="+str(output)+".csv"
+        cmd_bg = "sudo /opt/AMDuProf_4.0-341/bin/AMDuProfPcm -r -m memory -d 10000 -A system -o "+str(output)+".csv"
+        print("cmd_bg", cmd_bg)
         process = subprocess.Popen(cmd_bg,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL,
@@ -265,8 +279,21 @@ class Applications():
                 if errs != None:
                     print("errs ", errs.decode())
 
+# num_cpu=64
+# app = Applications(num_cpu)
+# cmds = []
+# paths = []
+    
+# for i in range(num_cpu):
+    # cmd_path, cmd_bg = app.get_spec_app(i*2)
+    # cmds.append(cmd_bg)
+    # paths.append(cmd_path)
 
-# A = Applications(4)
+# app.replay_runs(paths, cmds)
+# A.run_bw("aaa")
+# time.sleep(5)
+# A.kill_bw()
+
 # A.run_perf_stat()
 # time.sleep(10)
 # A.kill_perf_stat()
