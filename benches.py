@@ -16,9 +16,9 @@ spec_path = {
     
     # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
-    # "pr": "gapbs/",
+    "pr": "gapbs/",
     # "sssp": "gapbs/",
-    # "bc": "gapbs/"
+    "bc": "gapbs/"
 }
 
 spec_cmds = {
@@ -28,9 +28,9 @@ spec_cmds = {
     # "sleep": "sleep 10m",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
-    # "pr": "/home/cc/gapbs/pr -u 20 -n 10",
+    "pr": "/home/cc/gapbs/pr -u 24 -n 15",
     # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    # "bc": "/home/cc/gapbs/bc -u 23 -n 20",
+    "bc": "/home/cc/gapbs/bc -u 24 -n 15",
 }
 
 
@@ -66,6 +66,17 @@ class Applications():
 
         print("App map is ", self.core_PID)
     
+    def add_noise(self):
+        cmd_bg = "taskset -c 48-80:2 /home/cc/test/STREAM/stream"
+        cmd_path = "./"
+        process = subprocess.Popen(cmd_bg,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
+                                   shell=True,
+                                   cwd=cmd_path
+                                   )
+        print("Noise added ", process.pid)
+        
     def kill_bw(self):
         cmd_bg = "sudo pkill -f pcm-memory*"
         print("run_bw killed the last run the new", cmd_bg, self.bw_PID)
@@ -89,7 +100,7 @@ class Applications():
     def run_bw(self, output):
         self.kill_bw()
         cmd_path = "./"
-        cmd_bg = "sudo /home/cc/test/pcm/build/bin/pcm-memory -csv="+str(output)+".csv"
+        cmd_bg = "sudo /home/cc/test/pcm/build/bin/pcm-memory 0.1 -csv="+str(output)+".csv"
         process = subprocess.Popen(cmd_bg,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL,
@@ -101,7 +112,7 @@ class Applications():
     def run_perf_stat(self):
         self.kill_perf_stat()
         cmd_path = "./"
-        cmd_bg = "sudo perf stat -x, -C 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 -o test.csv -A -I 100 -e idq_uops_not_delivered.core,uops_issued.any,int_misc.recovery_cycles,uops_retired.retire_slots,cpu_clk_unhalted.thread,mem_load_retired.l3_miss,inst_retired.any,mem_load_retired.l2_miss,mem_load_retired.l1_miss,l1d_pend_miss.pending,l1d_pend_miss.pending_cycles,mem_load_retired.fb_hit,uncore_imc/cas_count_read/,uncore_imc/cas_count_write/,cha/event=0x36\,umask=0x21\,config=0x40433/,cha/event=0x35\,umask=0x21\,config=0x40433/,cha_0/event=0x0/  --append "
+        cmd_bg = "sudo perf stat -x, -C 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46 -o test.csv -A -I 100 -e idq_uops_not_delivered.core,uops_issued.any,int_misc.recovery_cycles,uops_retired.retire_slots,cpu_clk_unhalted.thread,mem_load_retired.l3_miss,inst_retired.any,mem_load_retired.l2_miss,mem_load_retired.l1_miss,l1d_pend_miss.pending,l1d_pend_miss.pending_cycles,mem_load_retired.fb_hit,uncore_imc/cas_count_read/,uncore_imc/cas_count_write/,cha/event=0x36\,umask=0x21\,config=0x40433/,cha/event=0x35\,umask=0x21\,config=0x40433/,cha_0/event=0x0/  --append "
         process = subprocess.Popen(cmd_bg,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL,

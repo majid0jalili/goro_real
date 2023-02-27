@@ -35,15 +35,13 @@ gamma = args.gamma
 run_name = args.name
 mlmode = args.mlmode
 
-num_cpu = 16
+num_cpu = 24
 num_pf_per_core = 4
 num_features_per_core = 7
 
-# state_space = num_features_per_core*num_cpu
-state_space = 256
+state_space = num_cpu*16
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
-
 
 total_reward = 0
 
@@ -104,8 +102,8 @@ def measure_pebs(pebs):
 
 
 def run_app(mix_num):
-    # run_mode = ["base", "goro", "random"]
-    run_mode = ["goro", "base", "random"]
+    run_mode = ["base", "goro", "random"]
+    # run_mode = ["goro", "base", "random"]
     
     
     app = Applications(num_cpu)
@@ -129,7 +127,7 @@ def run_app(mix_num):
         paths.append(cmd_path)
     
     
-    app_name = "app_"+str(mix_num)+".xlsx"
+    app_name = "app_noise_"+str(mix_num)+".xlsx"
     df_cmds = pd.DataFrame(cmds)
     with pd.ExcelWriter(app_name) as writer:
         df_cmds.to_excel(writer, sheet_name="apps", index=False)
@@ -144,6 +142,7 @@ def run_app(mix_num):
         itr = 0
         app.run_bw("app_"+str(mix_num)+str("_bw_"+str(r_mode)))
         num_app = app.num_running_apps()
+        app.add_noise()
         while(num_app != 0):
             action, make_action_length = make_action(r_mode, state, num_app)
             take_action_length = take_action(action, pf)
@@ -183,13 +182,13 @@ def run_app(mix_num):
    
 def load_model():
     print("Function load_model")
-    agent.load_model("./models/model.49.12", device)
+    agent.load_model("./models/model", device)
 
 
 def main():
     load_model()
 
-    for i in range(0, 12, 1):
+    for i in range(0, 10, 1):
         run_app(i)
 
     return
