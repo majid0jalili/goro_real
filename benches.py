@@ -11,27 +11,27 @@ spec_root = "/home/cc/spec/benchspec/CPU/"
 spec_path = {
     "mcf": "505.mcf_r/run/run_base_refrate_mytest-m64.0000/",
     "lbm": "519.lbm_r/run/run_base_refrate_mytest-m64.0000/",
-    # "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
+    "gcc": "502.gcc_r/run/run_base_refrate_mytest-m64.0000/",
     # "sleep": "./",
     
     # "omnet": "520.omnetpp_r/run/run_base_refrate_mytest-m64.0000/",
     # "fotonik": "549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/",
-    "pr": "gapbs/",
+    # "pr": "gapbs/",
     # "sssp": "gapbs/",
-    "bc": "gapbs/",
+    # "bc": "gapbs/",
     # "stream": "STREAM/"
 }
 
 spec_cmds = {
     "mcf": "./mcf_r_base.mytest-m64 ./inp.in",
     "lbm": "./lbm_r_base.mytest-m64 3000 reference.dat 0 0 100_100_130_ldc.of",
-    # "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
+    "gcc": "./cpugcc_r_base.mytest-m64 gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s",
     # "sleep": "sleep 10m",
     # "omnet": "./omnetpp_r_base.mytest-m64 -c General -r 0",
     # "fotonik": "./fotonik3d_r_base.mytest-m64",
-    "pr": "/home/cc/gapbs/pr -u 21 -n 100",
+    # "pr": "/home/cc/gapbs/pr -u 21 -n 100",
     # "sssp": "/home/cc/gapbs/sssp -u 23 -n 20",
-    "bc": "/home/cc/gapbs/bc -u 21 -n 100",
+    # "bc": "/home/cc/gapbs/bc -u 21 -n 100",
     # "stream": "/home/cc/test/STREAM/stream"
 }
 
@@ -47,9 +47,9 @@ class Applications():
         print("---------------")
 
         for i in range(self.num_app):
-            self.core_PID[2*i] = -2
-            self.start_time[2*i] = -2
-            self.end_time[2*i] = -2
+            self.core_PID[i] = -2
+            self.start_time[i] = -2
+            self.end_time[i] = -2
 
         print("App map is ", self.core_PID)
 
@@ -59,12 +59,12 @@ class Applications():
         self.start_time = {}
         self.end_time = {}
         self.bw_PID = -2
-        print("---------------")
+        print("---------------") 
 
         for i in range(self.num_app):
-            self.core_PID[2*i] = -2
-            self.start_time[2*i] = -2
-            self.end_time[2*i] = -2
+            self.core_PID[i] = -2
+            self.start_time[i] = -2
+            self.end_time[i] = -2
 
         print("App map is ", self.core_PID)
     
@@ -113,10 +113,11 @@ class Applications():
         print("-**----run_bw----PID", process.pid, self.bw_PID)
 
    
-    def run_perf_stat(self):
+    def run_perf_stat(self, event_list):
         self.kill_perf_stat()
         cmd_path = "./"
-        cmd_bg = "sudo perf stat -x, -C 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30 -o test.csv -A -I 100 -e branches,cache-references,instructions,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-prefetches,L1-icache-load-misses,dTLB-load-misses,dTLB-loads,iTLB-loads,msr/aperf/,msr/irperf/,msr/mperf/,msr/tsc/,branch-instructions,branch-misses,branch-loads  --append "
+        
+        cmd_bg = "sudo perf stat -x, -C 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 -o test.csv -A -I 100 -e "+event_list+  " --append "
         process = subprocess.Popen(cmd_bg,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL,
@@ -133,16 +134,16 @@ class Applications():
     def duration(self):
         dur = []
         for i in range(self.num_app):
-            idx = i*2
+            idx = i
             dur.append(self.end_time[idx] - self.start_time[idx])
         return dur
         
     def force_kill_all(self):
         for i in range(self.num_app):
             os.kill(self.core_PID[i], 9)
-            self.core_PID[2*i] = -2
-            self.start_time[2*i] = -2
-            self.end_time[2*i] = -2
+            self.core_PID[i] = -2
+            self.start_time[i] = -2
+            self.end_time[i] = -2
 
     def check_pid(self, pid):
         """ Check For the existence of a unix pid. """
@@ -215,16 +216,16 @@ class Applications():
     def replay_runs(self, cmd_path, cmd_bg):
         idx = 0
         for cmd in cmd_bg:
-            print("Running ", cmd, " on core ", idx*2)
+            print("Replaying ", cmd, " on core ", idx)
             process = subprocess.Popen(cmd,
                                        stdout=subprocess.DEVNULL,
                                        stderr=subprocess.DEVNULL,
                                        shell=True,
                                        cwd=cmd_path[idx]
                                        )
-            self.core_PID[idx*2] = process.pid
-            self.start_time[idx*2] = time.time()
-            self.end_time[idx*2] = -2
+            self.core_PID[idx] = process.pid
+            self.start_time[idx] = time.time()
+            self.end_time[idx] = -2
             idx += 1
 
     def get_sleep_time(self, time):

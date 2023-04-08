@@ -37,7 +37,7 @@ run_name = args.name
 mlmode = args.mlmode
 
 num_cpu = 64
-features = 24
+features = 50
 num_pf_per_core = 1
 
 alpha = 0.2
@@ -151,8 +151,7 @@ def run_app(mix_num, name):
         cmd_path, cmd_bg = app.get_spec_app(i)
         cmds.append(cmd_bg)
         paths.append(cmd_path)
-    
-    
+       
     df_cmds = pd.DataFrame(cmds)
     
     for r_mode in run_mode:
@@ -219,7 +218,7 @@ def run_app(mix_num, name):
     file1.close()
     
 def read_counters():
-    f = open("list.txt", "r")
+    f = open("list1.txt", "r")
     all_events = []
     while True:
         file_line = f.readline()

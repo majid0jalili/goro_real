@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 import pandas as pd
+import numpy as np
 
 # sudo perf stat -a  -M DRAM_BW_Use -e  llc_misses.mem_read,L1-dcache-load-misses,l2_rqsts.miss,offcore_requests.all_data_rd,offcore_requests_buffer.sq_full,uops_executed.stall_cycles,instructions
 class PEBS():
@@ -118,7 +119,7 @@ class PEBS():
             LLC_miss.append(LLC_store_miss[i]+LLC_load_miss[i])
         return state_p, insts, LLC_miss
 
-    def state1(self):
+    def state1(self, evensts):
         # print("Reading...")
         try:
             df = pd.read_csv('test.csv', skiprows=2, header=None, on_bad_lines='skip')
@@ -154,56 +155,44 @@ class PEBS():
             print(df1)
             print("-----")
 
-# ,,,,,,  
+
 
         features_clean = {}
-        evensts = ["branches", #A
-                   "cache-references", #B
-                   "instructions",  #C
-                   "L1-dcache-load-misses", #D
-                   "L1-dcache-loads", #E
-                   "L1-dcache-prefetches",  #F
-                   "L1-icache-load-misses",  #G
-                   "dTLB-load-misses", #H
-                   "dTLB-loads", #I
-                   "iTLB-loads ", #J
-                   
-                   "msr/aperf/", #K
-                   "msr/irperf/",#L
-                   "msr/mperf/",
-                   "msr/tsc/",
-                   "branch-instructions",
-                   "branch-misses",
-                   "branch-loads"
-                   
-                   ] 
+        
 
-        for cpu in range(0, self.num_cpu*2, 2):
-            for e in evensts:
+        
+        rows, cols = (self.num_cpu, len(evensts))
+        arr = [[0 for i in range(cols)] for j in range(rows)]
+        
+        for cpu in range(0, self.num_cpu, 1):
+            idx = 0 
+            for i, e in enumerate(evensts):
                 thekey = ("CPU"+str(cpu), e)
                 if thekey in features:
                     features_clean[thekey] = features[thekey]
+                                       
                 else:
                     features_clean[thekey] = 1
-                    
-       
+                arr[cpu][idx] = features_clean[thekey]
+                idx += 1
+                
+        arr = np.array(arr)
+        
         features_list = []
         insts = []
 
         for f in features_clean:
             cpu = f[0][3:]
             if (f[1] != 'instructions'):
-                features_list.append(features_clean[f] /
-                                     features_clean[("CPU" + str(cpu),
-                                              "instructions")]
-                                     )
+                # features_list.append(features_clean[f] /
+                                     # features_clean[("CPU" + str(cpu),
+                                              # "instructions")]
+                                     # )
+            
+                features_list.append(features_clean[f])
             else:
                 insts.append(features_clean[f])
-    
-
-        # print(features_list)
-        # print("SIZE---", len(features_list))
-        return features_list, insts, []
+        return features_list, insts, arr
     
     def stats(self):
         state_p = []

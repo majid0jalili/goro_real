@@ -38,10 +38,9 @@ mlmode = args.mlmode
 
 num_cpu = 64
 num_pf_per_core = 1
-num_features_per_core = 7
+num_features_per_core = 257
 
-# state_space = num_features_per_core*num_cpu
-state_space = num_cpu*16
+state_space = num_cpu*num_features_per_core
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -52,7 +51,7 @@ beta = 0.6
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-
+events = []
 
 def summary():
     print("cpu_count", multiprocessing.cpu_count())
@@ -84,9 +83,15 @@ def run_model(agent):
     return tot_actions
         
 def train(agent):
+    global events
     print("Function set_collector")
+    event_list = ""
+    for e in events:
+        event_list +=e+","
+    event_list = event_list[:-1]
+    
     app = Applications(num_cpu)
-    app.run_perf_stat()
+    app.run_perf_stat(event_list)
     time.sleep(4)
     
     pebs = PEBS(num_cpu)
@@ -94,7 +99,9 @@ def train(agent):
     
     total_reward = 0
     n = 0
-    state, insts, llc_misses = pebs.state1()
+    state, insts, llc_misses = pebs.state1(events)
+    
+    
     
     next_state = []
     next_inst = []
@@ -107,7 +114,7 @@ def train(agent):
     itr = 0
     examine = 0
     loss = 0
-    elapsed = {}
+    elapsed = {} 
     time.sleep(1)
     
     
@@ -129,12 +136,12 @@ def train(agent):
         elapsed["pf_Set"]=round(toc-tic, 2)
         
         tic = time.time()
-        next_state, next_inst, llc_misses = pebs.state1()
+        next_state, next_inst, llc_misses = pebs.state1(events)
         toc = time.time()
         elapsed["read_state"]=round(toc-tic, 2)
 
         # time.sleep(0.1)
-        total_llc_misses = [sum(i) for i in zip(total_llc_misses, llc_misses )]  
+
         total_insts = [sum(i) for i in zip(total_insts, next_inst )]  
         itr += 1
         examine += 1
@@ -189,7 +196,7 @@ def train(agent):
             examine = 0
             agent.save_model("model")
             agent.memory.beta = beta
-            agent.memory.write_to_csv("mem.xlsx")
+            # agent.memory.write_to_csv("mem.xlsx")
             dist_actions = run_model(agent)
             print("dist_actions", dist_actions)
             # if(dist_actions[0]+dist_actions[1] > 0.8):
@@ -213,7 +220,21 @@ def train(agent):
         state = next_state
         insts = next_inst
 
-   
+def read_counters():
+    f = open("ag.list", "r")
+    all_events = []
+    while True:
+        file_line = f.readline()
+        file_line = file_line.strip()
+        if not file_line:
+            break
+        else:
+            all_events.append(file_line)
+    f.close()
+    all_events.append("instructions")
+    all_events.append("cycles")
+    print("all_events size", len(all_events))
+    return  all_events  
 
 
 def load_model(agent):
@@ -222,6 +243,9 @@ def load_model(agent):
 
 
 def main():
+    global events
+    events = read_counters()
+
     agent = BQN(state_space, action_space, action_scale,
             learning_rate, device, num_cpu, num_pf_per_core, alpha, beta)
       

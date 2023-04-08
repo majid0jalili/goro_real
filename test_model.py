@@ -8,10 +8,10 @@ from agent import BQN
 
 num_cpu = 64
 num_pf_per_core = 1
-num_features_per_core = 7
+num_features_per_core = 257
 
 # state_space = num_features_per_core*num_cpu
-state_space = num_cpu*16
+state_space = num_cpu*num_features_per_core
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 

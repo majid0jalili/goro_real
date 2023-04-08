@@ -37,10 +37,10 @@ mlmode = args.mlmode
 
 num_cpu = 64
 num_pf_per_core = 1
-num_features_per_core = 7
+num_features_per_core = 257
 
 # state_space = num_features_per_core*num_cpu
-state_space = num_cpu*16
+state_space = num_cpu*num_features_per_core
 action_space = num_cpu
 action_scale = pow(2, num_pf_per_core)
 
@@ -50,7 +50,7 @@ alpha = 0.2
 beta = 0.6
 loss = 0
 avg_reward = 0
-
+events = []
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -97,7 +97,7 @@ def take_action(actions, pf):
 def measure_pebs(pebs):
     time.sleep(0.1)
     start = time.time()
-    state, insts, llc_misses = pebs.state1()
+    state, insts, llc_misses = pebs.state1(events)
     end = time.time()
     return state, insts, round(end-start, 2)
 
@@ -106,9 +106,17 @@ def run_app(mix_num):
     # run_mode = ["base", "goro", "random"]
     run_mode = ["goro", "base", "random"]
     
+    global events
+    print("Function set_collector")
+    event_list = ""
+    for e in events:
+        event_list +=e+","
+    event_list = event_list[:-1]
+    
+    
     
     app = Applications(num_cpu)
-    app.run_perf_stat()
+    app.run_perf_stat(event_list)
     print("Initlize wait for test.csv")
     time.sleep(5) 
     pf = Prefetcher(num_cpu, num_pf_per_core)
@@ -118,12 +126,12 @@ def run_app(mix_num):
     
     
     pebs = PEBS(num_cpu)
-    state, insts, llc_misses = pebs.state1()
+    state, insts, llc_misses = pebs.state1(events)
     
     
     
     for i in range(num_cpu):
-        cmd_path, cmd_bg = app.get_spec_app(i*2)
+        cmd_path, cmd_bg = app.get_spec_app(i)
         cmds.append(cmd_bg)
         paths.append(cmd_path)
     
@@ -162,7 +170,7 @@ def run_app(mix_num):
         duration = app.duration()
         app.kill_bw()
         app.app_rest()
-        app.run_perf_stat()
+        app.run_perf_stat(event_list)
         time.sleep(5)
         
         df_inst = pd.DataFrame(instructions)
@@ -185,11 +193,28 @@ def load_model():
     print("Function load_model")
     agent.load_model("./models/model", device)
 
+def read_counters():
+    f = open("ag.list", "r")
+    all_events = []
+    while True:
+        file_line = f.readline()
+        file_line = file_line.strip()
+        if not file_line:
+            break
+        else:
+            all_events.append(file_line)
+    f.close()
+    all_events.append("instructions")
+    all_events.append("cycles")
+    print("all_events size", len(all_events))
+    return  all_events  
 
 def main():
+    global events
+    events = read_counters()
     load_model()
 
-    for i in range(50, 75, 1):
+    for i in range(0, 10, 1):
         run_app(i)
 
     return

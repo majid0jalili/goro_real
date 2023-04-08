@@ -34,7 +34,7 @@ class Prefetcher():
 
     def all_prefetcher_set_forced(self):
         for core in range(self.num_cpu):
-            self.prefetcher_set(2*core, "0")
+            self.prefetcher_set(core, "0")
         
         
         
@@ -42,7 +42,7 @@ class Prefetcher():
         acc = []
         for core in range(self.num_cpu):
             if mask[0] != self.last_setting[core]:
-                self.prefetcher_set(2*core, mask[core])
+                self.prefetcher_set(core, mask[core])
             for m in mask[core]:
                 acc.append(m)
             self.last_setting[core] = mask[core]
