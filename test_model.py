@@ -8,7 +8,7 @@ from agent import BQN
 
 num_cpu = 64
 num_pf_per_core = 1
-num_features_per_core = 257
+num_features_per_core = 33
 
 # state_space = num_features_per_core*num_cpu
 state_space = num_cpu*num_features_per_core

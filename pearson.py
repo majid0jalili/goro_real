@@ -19,14 +19,6 @@ from prefetcher import Prefetcher
 import numpy as np
 
 parser = argparse.ArgumentParser('parameters')
-parser.add_argument('--lr_rate', type=float, default=1e-3,
-                    help='learning rate (default : 0.0001)')
-parser.add_argument('--batch_size', type=int, default=16,
-                    help='batch size(default : 32)')
-parser.add_argument('--gamma', type=float, default=0.99,
-                    help='gamma (default : 0.99)')
-parser.add_argument("--name", type=str, default='unknown')
-parser.add_argument("--mlmode", type=str, default='train')
 
 args = parser.parse_args()
 
@@ -37,7 +29,7 @@ run_name = args.name
 mlmode = args.mlmode
 
 num_cpu = 64
-features = 50
+features = 25
 num_pf_per_core = 1
 
 alpha = 0.2

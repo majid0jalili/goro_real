@@ -37,7 +37,7 @@ mlmode = args.mlmode
 
 num_cpu = 64
 num_pf_per_core = 1
-num_features_per_core = 257
+num_features_per_core = 33
 
 # state_space = num_features_per_core*num_cpu
 state_space = num_cpu*num_features_per_core
@@ -151,7 +151,7 @@ def run_app(mix_num):
         itr = 0
         app.run_bw("app_"+str(mix_num)+str("_bw_"+str(r_mode)))
         num_app = app.num_running_apps()
-        # app.add_noise()
+        app.add_noise()
         while(num_app != 0):
             action, make_action_length = make_action(r_mode, state, num_app)
             take_action_length = take_action(action, pf)
