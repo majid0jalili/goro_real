@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 
 num_cpu = 64
-features = 25
+features = 25 
 num_pf_per_core = 1
 
 alpha = 0.2
@@ -36,6 +36,7 @@ evensts = []
 
 all_values = pd.DataFrame()                   
 all_values_abs = pd.DataFrame()
+all_values_diff = pd.DataFrame()
 last_values = np.zeros(shape=(num_cpu, features+2))
 
 
@@ -78,7 +79,7 @@ def take_action(actions, pf):
     return round(end-start, 2) 
     
 def measure_pebs(pebs):
-    global all_values, first_done, last_values, all_values_abs
+    global all_values, first_done, last_values, all_values_abs, all_values_diff
     
     time.sleep(0.1)
     start = time.time()
@@ -92,12 +93,11 @@ def measure_pebs(pebs):
 
     if(first_done > 0):
         a_sub = state_np[:, :-2]
-        # subtract the last two from the last two of the second numpy
         b_sub = state_np[:, -2:] - last_values[:, -2:] 
-        # concatenate the two arrays horizontally
         result = np.hstack((a_sub, b_sub))
         all_values = pd.concat([all_values, pd.DataFrame(result, columns=evensts)], ignore_index=True)
-        # all_values = pd.concat([all_values, pd.DataFrame(state_np, columns=evensts)], ignore_index=True)
+        all_values_diff = pd.concat([all_values_diff, pd.DataFrame(state_np-last_values, columns=evensts)], ignore_index=True)
+        
        
     
     all_values_abs = pd.concat([all_values_abs, pd.DataFrame(state_np, columns=evensts)], ignore_index=True)
@@ -174,18 +174,22 @@ def run_app(mix_num, name):
         df_act = pd.DataFrame(actions)
 
     app.kill_perf_stat()
-    global all_values_abs, all_values
+    global all_values_abs, all_values, all_values_diff
     
     all_values["ipc"] = all_values["instructions"]
     all_values_abs["ipc"] = all_values_abs["instructions"]
+    all_values_diff["ipc"] = all_values_diff["instructions"]
     
     all_values_abs = all_values_abs.fillna(0)
+    all_values_diff = all_values_diff.fillna(0)
     all_values = all_values.fillna(0)
     
     all_values.to_csv("all_values_"+str(mix_num)+".csv")
     all_values_abs.to_csv("all_values_abs_"+str(mix_num)+".csv")
+    all_values_diff.to_csv("all_values_diff_"+str(mix_num)+".csv")
     
     file1 = open(name, "a")  # append mode
+    file2 = open("all_values.txt", "a")  # append mode
     file1.write("\nPearson with delta\n\n")
     print("Delat Pearson", all_values.info())
     for e in evensts:
@@ -193,19 +197,34 @@ def run_app(mix_num, name):
             c = all_values[e].corr(all_values['ipc'])
             print(c)
             file1.write(e+str(":"+str(c))+"\n")
+            file2.write(e+str(":"+str(c))+"\n")
+    file2.close()
     
     print("All Pearson", all_values_abs.info())
     file1.write("\nPearson with abs\n")
+    file2 = open("all_values_abs.txt", "a")  # append mode
     for e in evensts:
         if(e != "instructions" and e!= "cycles"):
             c = all_values_abs[e].corr(all_values_abs['ipc'])
             print(c)
             file1.write(e+str(":"+str(c))+"\n")
-
+            file2.write(e+str(":"+str(c))+"\n")
+    file2.close()
+    
+    print("All Pearson", all_values_diff.info())
+    file1.write("\nPearson with all_values_diff\n")
+    file2 = open("all_values_diff.txt", "a")  # append mode
+    for e in evensts:
+        if(e != "instructions" and e!= "cycles"):
+            c = all_values_diff[e].corr(all_values_diff['ipc'])
+            print(c)
+            file1.write(e+str(":"+str(c))+"\n")
+            file2.write(e+str(":"+str(c))+"\n")
+    file2.close()        
     file1.close()
     
 def read_counters():
-    f = open("list1.txt", "r")
+    f = open("list2.txt", "r")
     all_events = []
     while True:
         file_line = f.readline()
@@ -219,15 +238,36 @@ def read_counters():
     return chunks
     
 def main():
+    name = "all_values_abs.txt"
+    file1 = open(name, "w")
+    L = ["This is all_values_abs"]
+    file1.writelines(L)
+    file1.close()
+    
+    name = "all_values_diff.txt"
+    file1 = open(name, "w")
+    L = ["This is all_values_diff"]
+    file1.writelines(L)
+    file1.close()
+    
+    
+    name = "all_values.txt"
+    file1 = open(name, "w")
+    L = ["This is all_values"]
+    file1.writelines(L)
+    file1.close()
+    
+        
     chunks = read_counters()
     for i in range(0, len(chunks), 1):
-        global all_values, first_done, last_values, all_values_abs, evensts
+        global all_values, first_done, last_values, all_values_abs, evensts, all_values_diff
         evensts = chunks[i]
         evensts.append("instructions")
         evensts.append("cycles")
         
         all_values = pd.DataFrame(columns=evensts)                   
         all_values_abs = pd.DataFrame(columns=evensts)                   
+        all_values_diff = pd.DataFrame(columns=evensts)                   
         last_values = np.zeros(shape=(num_cpu, features+2))
         first_done = 0
         name = "corr"+str(i)+".txt"
