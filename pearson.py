@@ -22,11 +22,6 @@ parser = argparse.ArgumentParser('parameters')
 
 args = parser.parse_args()
 
-learning_rate = args.lr_rate
-batch_size = args.batch_size
-gamma = args.gamma
-run_name = args.name
-mlmode = args.mlmode
 
 num_cpu = 64
 features = 25
