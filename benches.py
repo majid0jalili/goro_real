@@ -22,7 +22,14 @@ spec_path = {
     "bc": "gapbs/",
     "bfs": "gapbs/",
     "tc": "gapbs/",
-    "cc": "gapbs/"
+    "cc": "gapbs/",
+    
+    "is": "NPB3.3-SER/bin//",
+    "bt": "NPB3.3-SER/bin//",
+    "ep": "NPB3.3-SER/bin//",
+    "ft": "NPB3.3-SER/bin//",
+    "lu": "NPB3.3-SER/bin//",
+    "mg": "NPB3.3-SER/bin//"
     
     
 }
@@ -41,7 +48,14 @@ spec_cmds = {
     "bc": "/home/cc/gapbs/bc -u 21 -n 100",
     "bfs": "/home/cc/gapbs/bfs -u 22 -n 100",
     "tc": "/home/cc/gapbs/tc -u 22 -n 20",
-    "cc": "/home/cc/gapbs/cc -u 22 -n 100"
+    "cc": "/home/cc/gapbs/cc -u 22 -n 100",
+    
+    "is": "/home/cc/spec/benchspec/CPU/NPB3.3-SER/bin/is.C.x",
+    "bt": "/home/cc/spec/benchspec/CPU/NPB3.3-SER/bin/bt.C.x",
+    "ep": "/home/cc/spec/benchspec/CPU/NPB3.3-SER/bin/ep.C.x",
+    "ft": "/home/cc/spec/benchspec/CPU/NPB3.3-SER/bin/ft.C.x",
+    "lu": "/home/cc/spec/benchspec/CPU/NPB3.3-SER/bin/lu.C.x",
+    "mg": "/home/cc/spec/benchspec/CPU/NPB3.3-SER/bin/mg.C.x"
     
 }
 
